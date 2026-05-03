@@ -72,6 +72,10 @@ function ownedItemSearchText(item: OwnedItemRecord) {
     .toLowerCase()
 }
 
+function releaseHref(releaseId: string) {
+  return `/releases?release=${encodeURIComponent(releaseId)}`
+}
+
 type SearchFieldProps = {
   label: string
   placeholder: string
@@ -197,7 +201,7 @@ function OwnedItemDetail({ item }: OwnedItemDetailProps) {
           <div>
             <dt>{item.linkedType}</dt>
             <dd>
-              <a className="detail-link" href="/releases">
+              <a className="detail-link" href={releaseHref(item.releaseId)}>
                 {item.releaseTitle}
               </a>
             </dd>

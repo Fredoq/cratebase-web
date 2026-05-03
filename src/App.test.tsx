@@ -205,6 +205,20 @@ describe('App', () => {
     expect(within(detailPanel).getByText('Digital library')).toBeInTheDocument()
   })
 
+  it('selects a release from the release query parameter', () => {
+    window.history.pushState({}, '', '/releases?release=blue-monday')
+
+    render(<App />)
+
+    expect(
+      screen.getByRole('complementary', { name: 'Blue Monday' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('row', { name: /blue monday/i })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+  })
+
   it('renders the tracks workspace with track rows and selected detail', () => {
     window.history.pushState({}, '', '/tracks')
 
@@ -272,7 +286,7 @@ describe('App', () => {
       within(detailPanel).getByRole('link', {
         name: 'Selected Ambient Works 85-92',
       }),
-    ).toHaveAttribute('href', '/releases')
+    ).toHaveAttribute('href', '/releases?release=selected-ambient-works-85-92')
     expect(
       within(detailPanel).getByRole('heading', { name: 'Track credits' }),
     ).toBeInTheDocument()
@@ -365,7 +379,7 @@ describe('App', () => {
       within(detailPanel).getByRole('link', {
         name: 'Selected Ambient Works 85-92',
       }),
-    ).toHaveAttribute('href', '/releases')
+    ).toHaveAttribute('href', '/releases?release=selected-ambient-works-85-92')
     expect(
       within(detailPanel).getByRole('heading', { name: 'Ownership state' }),
     ).toBeInTheDocument()

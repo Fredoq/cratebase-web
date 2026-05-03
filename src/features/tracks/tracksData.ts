@@ -25,6 +25,7 @@ export type TrackRecord = {
   title: string
   artist: string
   release: {
+    id: string
     title: string
     artist: string
     year: string
@@ -46,6 +47,7 @@ export const trackRecords: TrackRecord[] = [
     title: 'Polynomial-C',
     artist: 'Aphex Twin',
     release: {
+      id: 'selected-ambient-works-85-92',
       title: 'Selected Ambient Works 85-92',
       artist: 'Aphex Twin',
       year: '1992',
@@ -95,6 +97,7 @@ export const trackRecords: TrackRecord[] = [
     title: 'Blue Monday',
     artist: 'New Order',
     release: {
+      id: 'blue-monday',
       title: 'Blue Monday',
       artist: 'New Order',
       year: '1983',
@@ -144,6 +147,7 @@ export const trackRecords: TrackRecord[] = [
     title: 'Yeah (Pretentious Mix)',
     artist: 'LCD Soundsystem',
     release: {
+      id: 'the-dfa-remix',
       title: 'The DFA Remix',
       artist: 'The DFA',
       year: '2000s',

@@ -90,6 +90,10 @@ function trackSearchText(track: TrackRecord) {
     .toLowerCase()
 }
 
+function releaseHref(releaseId: string) {
+  return `/releases?release=${encodeURIComponent(releaseId)}`
+}
+
 type SearchFieldProps = {
   label: string
   placeholder: string
@@ -226,7 +230,7 @@ function TrackDetail({ track }: TrackDetailProps) {
           <div>
             <dt>Release</dt>
             <dd>
-              <a className="detail-link" href="/releases">
+              <a className="detail-link" href={releaseHref(track.release.id)}>
                 {track.release.title}
               </a>
             </dd>

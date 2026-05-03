@@ -3,6 +3,7 @@ export type OwnedItemStatus = 'Owned' | 'Wanted' | 'Sold' | 'Needs digitization'
 export type OwnedItemRecord = {
   id: string
   title: string
+  releaseId: string
   releaseTitle: string
   artist: string
   medium: string
@@ -23,6 +24,7 @@ export const ownedItemRecords: OwnedItemRecord[] = [
   {
     id: 'selected-ambient-works-cd',
     title: 'Selected Ambient Works CD',
+    releaseId: 'selected-ambient-works-85-92',
     releaseTitle: 'Selected Ambient Works 85-92',
     artist: 'Aphex Twin',
     medium: 'CD',
@@ -42,6 +44,7 @@ export const ownedItemRecords: OwnedItemRecord[] = [
   {
     id: 'blue-monday-vinyl',
     title: 'Blue Monday vinyl',
+    releaseId: 'blue-monday',
     releaseTitle: 'Blue Monday',
     artist: 'New Order',
     medium: '12-inch vinyl',
@@ -61,6 +64,7 @@ export const ownedItemRecords: OwnedItemRecord[] = [
   {
     id: 'dfa-remix-digital',
     title: 'The DFA Remix digital folder',
+    releaseId: 'the-dfa-remix',
     releaseTitle: 'The DFA Remix',
     artist: 'The DFA',
     medium: 'Digital',
