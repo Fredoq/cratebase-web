@@ -517,12 +517,7 @@ describe('App', () => {
     expect(
       within(detailPanel).getByRole('heading', { name: 'Search hints' }),
     ).toBeInTheDocument()
-    expect(
-      within(detailPanel).getByText('Alias', { selector: '.entity-type' }),
-    ).toBeInTheDocument()
-    expect(
-      within(detailSection(detailPanel, 'Relation context')).getByText('Alias'),
-    ).toBeInTheDocument()
+    expect(within(detailPanel).getAllByText('Alias')).toHaveLength(3)
     expect(
       within(detailPanel).getByRole('link', { name: 'Aphex Twin' }),
     ).toHaveAttribute('href', '/artists')

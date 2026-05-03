@@ -220,7 +220,7 @@ function RelationDetail({ relation }: RelationDetailProps) {
               <a className="detail-link" href={targetHref(relation)}>
                 {relation.target}
               </a>{' '}
-              · {relation.targetType}
+              · <span>{relation.targetType}</span>
             </dd>
           </div>
         </dl>
