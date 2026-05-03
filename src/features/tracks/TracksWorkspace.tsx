@@ -111,7 +111,6 @@ function TrackEntryForm({ onCancel, onSubmit }: TrackEntryFormProps) {
       title: trackTitle,
       artist: trackArtist,
       release: {
-        id: createManualRecordId('linked-release', releaseTitle),
         title: releaseTitle,
         artist: trackArtist,
         year: 'Unknown year',
@@ -397,9 +396,13 @@ function TrackDetail({ track }: TrackDetailProps) {
           <div>
             <dt>Release</dt>
             <dd>
-              <a className="detail-link" href={releaseHref(track.release.id)}>
-                {track.release.title}
-              </a>
+              {track.release.id ? (
+                <a className="detail-link" href={releaseHref(track.release.id)}>
+                  {track.release.title}
+                </a>
+              ) : (
+                track.release.title
+              )}
             </dd>
           </div>
           <div>

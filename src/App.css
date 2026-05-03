@@ -810,7 +810,10 @@
     grid-template-columns: 1fr;
   }
 
-  .manual-entry-actions,
+  .manual-entry-actions {
+    flex-direction: column;
+  }
+
   .manual-entry-grid {
     grid-template-columns: 1fr;
   }

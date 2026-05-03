@@ -8,7 +8,7 @@ export type OwnedItemStatus =
 export type OwnedItemRecord = {
   id: string
   title: string
-  releaseId: string
+  releaseId?: string
   releaseTitle: string
   artist: string
   medium: string

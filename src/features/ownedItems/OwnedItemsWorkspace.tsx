@@ -108,10 +108,6 @@ function OwnedItemEntryForm({ onCancel, onSubmit }: OwnedItemEntryFormProps) {
     onSubmit({
       id: createManualRecordId('owned-item', itemTitle),
       title: itemTitle,
-      releaseId: createManualRecordId(
-        'owned-item-release',
-        textOrFallback(release, itemTitle),
-      ),
       releaseTitle: textOrFallback(release, 'Unlinked release'),
       artist: 'Unknown artist',
       medium: textOrFallback(medium, 'Unspecified medium'),
@@ -367,9 +363,13 @@ function OwnedItemDetail({ item }: OwnedItemDetailProps) {
           <div>
             <dt>{item.linkedType}</dt>
             <dd>
-              <a className="detail-link" href={releaseHref(item.releaseId)}>
-                {item.releaseTitle}
-              </a>
+              {item.releaseId ? (
+                <a className="detail-link" href={releaseHref(item.releaseId)}>
+                  {item.releaseTitle}
+                </a>
+              ) : (
+                item.releaseTitle
+              )}
             </dd>
           </div>
           <div>

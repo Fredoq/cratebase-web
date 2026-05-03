@@ -4,8 +4,9 @@ export function createManualRecordId(prefix: string, value: string) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
+  const randomSuffix = crypto.randomUUID()
 
-  return `manual-${prefix}-${slug || 'record'}-${Date.now()}`
+  return `manual-${prefix}-${slug || 'record'}-${randomSuffix}`
 }
 
 export function splitCommaList(value: string) {
