@@ -79,7 +79,6 @@ describe('App', () => {
 
   it.each([
     ['/releases', 'Releases', 'Search releases'],
-    ['/tracks', 'Tracks', 'Track-level credits, versions and local files.'],
     [
       '/owned-items',
       'Owned Items',
@@ -209,6 +208,91 @@ describe('App', () => {
     ).toBeInTheDocument()
     expect(within(detailPanel).getByText('Warp')).toBeInTheDocument()
     expect(within(detailPanel).getByText('Digital library')).toBeInTheDocument()
+  })
+
+  it('renders the tracks workspace with track rows and selected detail', () => {
+    window.history.pushState({}, '', '/tracks')
+
+    render(<App />)
+
+    expect(
+      screen.getByRole('region', { name: 'Tracks workspace' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('searchbox', { name: 'Search tracks' }),
+    ).toBeVisible()
+    expect(screen.getByRole('row', { name: /polynomial-c/i })).toBeVisible()
+    expect(
+      screen.getByRole('complementary', { name: 'Polynomial-C' }),
+    ).toBeInTheDocument()
+  })
+
+  it('filters tracks by title, artist, release, duration, credits, versions, relations and file format', async () => {
+    window.history.pushState({}, '', '/tracks')
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.type(
+      screen.getByRole('searchbox', { name: 'Search tracks' }),
+      'new order 07:29 factory version wav',
+    )
+
+    expect(screen.getByRole('row', { name: /blue monday/i })).toBeVisible()
+    expect(
+      screen.queryByRole('row', { name: /polynomial-c/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('updates track detail when a track row is selected', async () => {
+    window.history.pushState({}, '', '/tracks')
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: /blue monday/i }))
+
+    const detailPanel = screen.getByRole('complementary', {
+      name: 'Blue Monday',
+    })
+
+    expect(
+      within(detailPanel).getByRole('heading', { name: 'Blue Monday' }),
+    ).toBeInTheDocument()
+    expect(within(detailPanel).getAllByText('New Order')).toHaveLength(4)
+    expect(within(detailPanel).getByText(/factory/i)).toBeInTheDocument()
+  })
+
+  it('shows release link, credits, relations and file metadata as separate track detail sections', () => {
+    window.history.pushState({}, '', '/tracks')
+
+    render(<App />)
+
+    const detailPanel = screen.getByRole('complementary', {
+      name: 'Polynomial-C',
+    })
+
+    expect(
+      within(detailPanel).getByRole('heading', { name: 'Linked release' }),
+    ).toBeInTheDocument()
+    expect(
+      within(detailPanel).getByRole('link', {
+        name: 'Selected Ambient Works 85-92',
+      }),
+    ).toHaveAttribute('href', '/releases')
+    expect(
+      within(detailPanel).getByRole('heading', { name: 'Track credits' }),
+    ).toBeInTheDocument()
+    expect(
+      within(detailPanel).getByRole('heading', {
+        name: 'Versions and relations',
+      }),
+    ).toBeInTheDocument()
+    expect(
+      within(detailPanel).getByRole('heading', { name: 'Local file metadata' }),
+    ).toBeInTheDocument()
+    expect(within(detailPanel).getByText('FLAC')).toBeInTheDocument()
+    expect(
+      within(detailPanel).getByText('44.1 kHz / 16-bit'),
+    ).toBeInTheDocument()
   })
 
   it('filters catalog rows by media, status and relation text', async () => {
