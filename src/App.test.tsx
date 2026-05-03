@@ -473,6 +473,20 @@ describe('App', () => {
     ).toBeInTheDocument()
   })
 
+  it('shows an empty detail state when no playlists match the search query', async () => {
+    window.history.pushState({}, '', '/playlists')
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.type(
+      screen.getByRole('searchbox', { name: 'Search playlists' }),
+      'zzz no match at all',
+    )
+
+    expect(screen.getByText('0 shown')).toBeInTheDocument()
+    expect(screen.getByText('No matching playlists.')).toBeInTheDocument()
+  })
+
   it('renders the owned items workspace with copy rows and selected detail', () => {
     window.history.pushState({}, '', '/owned-items')
 

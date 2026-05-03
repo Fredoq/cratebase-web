@@ -72,6 +72,11 @@ function filterPlaylists(query: string) {
 }
 
 function playlistSearchText(playlist: PlaylistRecord) {
+  const selectionText =
+    playlist.type === 'Manual'
+      ? [playlist.manualSelection.source, playlist.manualSelection.note]
+      : [playlist.smartRules.summary, ...playlist.smartRules.criteria]
+
   return [
     playlist.name,
     playlist.type,
@@ -79,10 +84,7 @@ function playlistSearchText(playlist: PlaylistRecord) {
     playlist.curator,
     playlist.updatedAt,
     playlist.yearRange,
-    playlist.manualSelection?.source,
-    playlist.manualSelection?.note,
-    playlist.smartRules?.summary,
-    ...(playlist.smartRules?.criteria ?? []),
+    ...selectionText,
     ...playlist.ruleHints,
     ...playlist.tracks.flatMap((track) => [
       track.title,
@@ -282,7 +284,7 @@ function PlaylistDetail({ playlist }: PlaylistDetailProps) {
 
       <section className="detail-section" aria-labelledby="playlist-rules">
         <h3 id="playlist-rules">Smart rules / manual selection</h3>
-        {playlist.type === 'Manual' && playlist.manualSelection ? (
+        {playlist.type === 'Manual' ? (
           <dl className="detail-list">
             <div>
               <dt>Selection mode</dt>
@@ -294,7 +296,7 @@ function PlaylistDetail({ playlist }: PlaylistDetailProps) {
             </div>
           </dl>
         ) : null}
-        {playlist.type === 'Smart' && playlist.smartRules ? (
+        {playlist.type === 'Smart' ? (
           <div className="copy-list">
             <article className="copy-card">
               <strong>{playlist.smartRules.summary}</strong>
@@ -398,9 +400,11 @@ type BadgeListProps = {
 }
 
 function BadgeList({ values, variant = 'tag' }: BadgeListProps) {
+  const uniqueValues = [...new Set(values)]
+
   return (
     <span className="badge-list">
-      {values.map((value) => (
+      {uniqueValues.map((value) => (
         <span key={value} className={`badge badge-${variant}`}>
           {value}
         </span>

@@ -30,10 +30,19 @@ export type LinkedReleaseAvailability = {
   availability: string
 }
 
-export type PlaylistRecord = {
+type PlaylistRuleSet = {
+  summary: string
+  criteria: string[]
+}
+
+type ManualSelection = {
+  source: string
+  note: string
+}
+
+type BasePlaylistRecord = {
   id: string
   name: string
-  type: PlaylistType
   description: string
   curator: string
   updatedAt: string
@@ -41,15 +50,17 @@ export type PlaylistRecord = {
   ruleHints: string[]
   tracks: PlaylistTrack[]
   linkedReleases: LinkedReleaseAvailability[]
-  manualSelection?: {
-    source: string
-    note: string
-  }
-  smartRules?: {
-    summary: string
-    criteria: string[]
-  }
 }
+
+export type PlaylistRecord =
+  | (BasePlaylistRecord & {
+      type: 'Manual'
+      manualSelection: ManualSelection
+    })
+  | (BasePlaylistRecord & {
+      type: 'Smart'
+      smartRules: PlaylistRuleSet
+    })
 
 export const playlistRecords: PlaylistRecord[] = [
   {
