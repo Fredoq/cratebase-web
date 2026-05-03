@@ -8,13 +8,18 @@ export function RelationsWorkspace() {
     relationRecords[0].id,
   )
 
-  const visibleRelations = useMemo(() => {
-    const terms = queryTerms(query)
+  const visibleRelations = useMemo(() => filterRelations(query), [query])
 
-    return relationRecords.filter((relation) =>
-      terms.every((term) => relationSearchText(relation).includes(term)),
+  function handleQueryChange(nextQuery: string) {
+    const nextVisibleRelations = filterRelations(nextQuery)
+
+    setQuery(nextQuery)
+    setSelectedRelationId((currentRelationId) =>
+      nextVisibleRelations.some((relation) => relation.id === currentRelationId)
+        ? currentRelationId
+        : (nextVisibleRelations[0]?.id ?? ''),
     )
-  }, [query])
+  }
 
   const selectedRelation =
     visibleRelations.find((relation) => relation.id === selectedRelationId) ??
@@ -28,7 +33,7 @@ export function RelationsWorkspace() {
           label="Search relations"
           placeholder="Source, target, type, role, release, track or context"
           query={query}
-          onQueryChange={setQuery}
+          onQueryChange={handleQueryChange}
         />
         <div className="filter-bar">
           <span className="result-count">{visibleRelations.length} shown</span>
@@ -51,6 +56,14 @@ export function RelationsWorkspace() {
 
 function queryTerms(query: string) {
   return query.trim().toLowerCase().split(/\s+/).filter(Boolean)
+}
+
+function filterRelations(query: string) {
+  const terms = queryTerms(query)
+
+  return relationRecords.filter((relation) =>
+    terms.every((term) => relationSearchText(relation).includes(term)),
+  )
 }
 
 function relationSearchText(relation: RelationRecord) {

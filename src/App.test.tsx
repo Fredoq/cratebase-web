@@ -358,9 +358,16 @@ describe('App', () => {
       within(detailPanel).getByRole('heading', { name: 'Blue Monday vinyl' }),
     ).toBeInTheDocument()
     expect(within(detailPanel).getByText('Shelf A3')).toBeInTheDocument()
-    expect(within(detailPanel).getAllByText('Needs digitization')).toHaveLength(
-      3,
-    )
+    expect(
+      within(detailSection(detailPanel, 'Ownership state')).getByText(
+        'Needs digitization',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      within(
+        detailSection(detailPanel, 'Digital and digitization metadata'),
+      ).getByText('Needs digitization'),
+    ).toBeInTheDocument()
   })
 
   it('shows release link, ownership, physical details and digitization metadata as separate owned item detail sections', () => {
@@ -460,6 +467,35 @@ describe('App', () => {
     ).toHaveLength(2)
   })
 
+  it('keeps relation detail aligned with the filtered selection when search is cleared', async () => {
+    window.history.pushState({}, '', '/relations')
+    const user = userEvent.setup()
+    render(<App />)
+
+    const searchbox = screen.getByRole('searchbox', {
+      name: 'Search relations',
+    })
+
+    await user.type(searchbox, 'dfa remixer')
+
+    expect(
+      screen.getByRole('complementary', {
+        name: 'The DFA to LCD Soundsystem',
+      }),
+    ).toBeInTheDocument()
+
+    await user.clear(searchbox)
+
+    expect(
+      screen.getByRole('row', { name: /the dfa lcd soundsystem/i }),
+    ).toHaveAttribute('aria-selected', 'true')
+    expect(
+      screen.getByRole('complementary', {
+        name: 'The DFA to LCD Soundsystem',
+      }),
+    ).toBeInTheDocument()
+  })
+
   it('shows endpoints, relation context, linked evidence and search hints as separate relation detail sections', () => {
     window.history.pushState({}, '', '/relations')
 
@@ -481,7 +517,12 @@ describe('App', () => {
     expect(
       within(detailPanel).getByRole('heading', { name: 'Search hints' }),
     ).toBeInTheDocument()
-    expect(within(detailPanel).getAllByText('Alias')).toHaveLength(2)
+    expect(
+      within(detailPanel).getByText('Alias', { selector: '.entity-type' }),
+    ).toBeInTheDocument()
+    expect(
+      within(detailSection(detailPanel, 'Relation context')).getByText('Alias'),
+    ).toBeInTheDocument()
     expect(
       within(detailPanel).getByRole('link', { name: 'Aphex Twin' }),
     ).toHaveAttribute('href', '/artists')
@@ -561,3 +602,14 @@ describe('App', () => {
     expect(within(detailPanel).getByText('Shelf A3')).toBeInTheDocument()
   })
 })
+
+function detailSection(panel: HTMLElement, headingName: string) {
+  const heading = within(panel).getByRole('heading', { name: headingName })
+  const section = heading.closest('section')
+
+  if (!section) {
+    throw new Error(`Missing detail section for heading: ${headingName}`)
+  }
+
+  return section
+}
