@@ -75,8 +75,10 @@ export function SettingsWorkspace() {
   }
 
   function handleMockDangerAction() {
+    setSettings(initialSettingsState)
+    setDangerConfirmed(false)
     setDangerStatus(
-      'Mock confirmation recorded. No collection data was deleted.',
+      'Mock settings were reset to defaults. No collection data was deleted.',
     )
   }
 
@@ -109,8 +111,8 @@ export function SettingsWorkspace() {
         ) : null}
 
         <SettingsTable
+          settingRecords={visibleSettings}
           selectedSettingId={selectedSetting?.id ?? ''}
-          settings={visibleSettings}
           onSelectSetting={setSelectedSettingId}
         />
       </div>
@@ -128,10 +130,10 @@ function queryTerms(query: string) {
   return query.trim().toLowerCase().split(/\s+/).filter(Boolean)
 }
 
-function filterSettings(settings: SettingRecord[], query: string) {
+function filterSettings(settingRecords: SettingRecord[], query: string) {
   const terms = queryTerms(query)
 
-  return settings.filter((setting) =>
+  return settingRecords.filter((setting) =>
     terms.every((term) => settingSearchText(setting).includes(term)),
   )
 }
@@ -321,14 +323,14 @@ function SettingsControls({
 }
 
 type SettingsTableProps = {
+  settingRecords: SettingRecord[]
   selectedSettingId: string
-  settings: SettingRecord[]
   onSelectSetting: (settingId: string) => void
 }
 
 function SettingsTable({
+  settingRecords,
   selectedSettingId,
-  settings,
   onSelectSetting,
 }: SettingsTableProps) {
   return (
@@ -354,7 +356,7 @@ function SettingsTable({
             </tr>
           </thead>
           <tbody>
-            {settings.map((setting) => (
+            {settingRecords.map((setting) => (
               <tr
                 key={setting.id}
                 aria-selected={setting.id === selectedSettingId}

@@ -843,6 +843,11 @@ describe('App', () => {
       screen.getByRole('button', { name: 'Reset mock settings' }),
     ).toBeDisabled()
 
+    await user.selectOptions(
+      screen.getByLabelText('Default media type'),
+      'Vinyl',
+    )
+    await user.click(screen.getByLabelText('CSV'))
     await user.click(
       screen.getByLabelText('I understand this is a local mock confirmation.'),
     )
@@ -851,10 +856,38 @@ describe('App', () => {
     )
 
     expect(screen.getByRole('status')).toHaveTextContent(
-      'Mock confirmation recorded. No collection data was deleted.',
+      'Mock settings were reset to defaults. No collection data was deleted.',
     )
     expect(
+      screen.getByRole('row', { name: /default media type/i }),
+    ).toHaveTextContent('Digital')
+    expect(
+      screen.getByRole('row', { name: /preferred export formats/i }),
+    ).toHaveTextContent('JSON, CSV')
+    expect(
+      screen.getByRole('button', { name: 'Reset mock settings' }),
+    ).toBeDisabled()
+    expect(
+      screen.getByLabelText('I understand this is a local mock confirmation.'),
+    ).not.toBeChecked()
+    expect(
       screen.getByRole('row', { name: /collection name/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('exposes the workspace header as a banner landmark', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('link', { name: 'Settings' }))
+
+    expect(
+      within(screen.getByRole('banner')).getByText('Default collection'),
+    ).toBeInTheDocument()
+    expect(
+      within(screen.getByRole('banner')).getByRole('heading', {
+        name: 'Settings',
+      }),
     ).toBeInTheDocument()
   })
 
