@@ -39,6 +39,51 @@ describe('App', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('keeps the detail panel in sync with filtered results', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.type(screen.getByRole('searchbox'), 'lossless')
+
+    const detailPanel = screen.getByRole('complementary', {
+      name: 'Polynomial-C',
+    })
+
+    expect(
+      within(detailPanel).getByRole('heading', { name: 'Polynomial-C' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('complementary', {
+        name: 'Selected Ambient Works 85-92',
+      }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('shows an empty detail state when no catalog rows match', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.type(screen.getByRole('searchbox'), 'no matching catalog item')
+
+    expect(screen.getByText('0 shown')).toBeInTheDocument()
+    expect(screen.getByText('No matching catalog entries.')).toBeInTheDocument()
+  })
+
+  it('applies saved-view filters to catalog rows', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Needs digitization' }))
+
+    expect(
+      screen.getByRole('button', { name: 'Needs digitization' }),
+    ).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('row', { name: /blue monday/i })).toBeVisible()
+    expect(
+      screen.queryByRole('row', { name: /polynomial-c/i }),
+    ).not.toBeInTheDocument()
+  })
+
   it('updates the detail panel when a catalog row is selected', async () => {
     const user = userEvent.setup()
     render(<App />)

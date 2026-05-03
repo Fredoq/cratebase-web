@@ -16,6 +16,8 @@ import {
 import { useMemo, useState } from 'react'
 import { catalogEntries, type CatalogEntry } from './catalogData'
 
+type SavedView = 'All' | 'Owned' | 'Needs digitization' | 'Lossless' | 'Credits'
+
 const navigationItems = [
   { label: 'Catalog', href: '/catalog', icon: Archive },
   { label: 'Artists', href: '/artists', icon: Users },
@@ -28,41 +30,37 @@ const navigationItems = [
   { label: 'Settings', href: '/settings', icon: Settings },
 ]
 
+const savedViews: SavedView[] = [
+  'All',
+  'Owned',
+  'Needs digitization',
+  'Lossless',
+  'Credits',
+]
+
 export function CatalogWorkspace() {
   const [query, setQuery] = useState('')
+  const [activeView, setActiveView] = useState<SavedView>('All')
   const [selectedEntryId, setSelectedEntryId] = useState(catalogEntries[0].id)
 
   const visibleEntries = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
 
-    if (normalizedQuery.length === 0) {
-      return catalogEntries
-    }
+    return catalogEntries
+      .filter((entry) => matchesSavedView(entry, activeView))
+      .filter((entry) => {
+        if (normalizedQuery.length === 0) {
+          return true
+        }
 
-    return catalogEntries.filter((entry) =>
-      [
-        entry.artist,
-        entry.title,
-        entry.type,
-        entry.year,
-        entry.label,
-        entry.status,
-        entry.relationHint,
-        entry.storage,
-        entry.condition,
-        ...entry.media,
-        ...entry.credits,
-        ...entry.tags,
-      ]
-        .join(' ')
-        .toLowerCase()
-        .includes(normalizedQuery),
-    )
-  }, [query])
+        return entrySearchText(entry).includes(normalizedQuery)
+      })
+  }, [activeView, query])
 
   const selectedEntry =
-    catalogEntries.find((entry) => entry.id === selectedEntryId) ??
-    catalogEntries[0]
+    visibleEntries.find((entry) => entry.id === selectedEntryId) ??
+    visibleEntries[0] ??
+    null
 
   return (
     <main className="app-shell">
@@ -74,19 +72,61 @@ export function CatalogWorkspace() {
         <section className="catalog-layout" aria-label="Catalog workspace">
           <div className="catalog-main">
             <SearchField query={query} onQueryChange={setQuery} />
-            <FilterBar visibleCount={visibleEntries.length} />
+            <FilterBar
+              activeView={activeView}
+              visibleCount={visibleEntries.length}
+              onViewChange={setActiveView}
+            />
             <CatalogTable
               entries={visibleEntries}
-              selectedEntryId={selectedEntry.id}
+              selectedEntryId={selectedEntry?.id ?? ''}
               onSelectEntry={setSelectedEntryId}
             />
           </div>
 
-          <DetailPanel entry={selectedEntry} />
+          {selectedEntry ? (
+            <DetailPanel entry={selectedEntry} />
+          ) : (
+            <EmptyDetailPanel />
+          )}
         </section>
       </section>
     </main>
   )
+}
+
+function matchesSavedView(entry: CatalogEntry, view: SavedView) {
+  switch (view) {
+    case 'All':
+      return true
+    case 'Owned':
+      return entry.status === 'Owned'
+    case 'Needs digitization':
+      return entry.status === 'Needs digitization'
+    case 'Lossless':
+      return entry.status === 'Lossless file' || entry.tags.includes('lossless')
+    case 'Credits':
+      return entry.credits.length > 0
+  }
+}
+
+function entrySearchText(entry: CatalogEntry) {
+  return [
+    entry.artist,
+    entry.title,
+    entry.type,
+    entry.year,
+    entry.label,
+    entry.status,
+    entry.relationHint,
+    entry.storage,
+    entry.condition,
+    ...entry.media,
+    ...entry.credits,
+    ...entry.tags,
+  ]
+    .join(' ')
+    .toLowerCase()
 }
 
 function SidebarNav() {
@@ -159,25 +199,26 @@ function SearchField({ query, onQueryChange }: SearchFieldProps) {
 }
 
 type FilterBarProps = {
+  activeView: SavedView
   visibleCount: number
+  onViewChange: (view: SavedView) => void
 }
 
-function FilterBar({ visibleCount }: FilterBarProps) {
+function FilterBar({ activeView, visibleCount, onViewChange }: FilterBarProps) {
   return (
     <div className="filter-bar" aria-label="Catalog filters">
       <div className="saved-views" role="list" aria-label="Saved views">
-        {['All', 'Owned', 'Needs digitization', 'Lossless', 'Credits'].map(
-          (view) => (
-            <button
-              key={view}
-              className="view-pill"
-              type="button"
-              aria-pressed={view === 'All'}
-            >
-              {view}
-            </button>
-          ),
-        )}
+        {savedViews.map((view) => (
+          <button
+            key={view}
+            className="view-pill"
+            type="button"
+            aria-pressed={activeView === view}
+            onClick={() => onViewChange(view)}
+          >
+            {view}
+          </button>
+        ))}
       </div>
 
       <button className="button button-secondary" type="button">
@@ -309,6 +350,23 @@ function DetailPanel({ entry }: DetailPanelProps) {
         <h3 id="tags-title">Tags</h3>
         <BadgeList values={entry.tags} variant="tag" />
       </section>
+    </aside>
+  )
+}
+
+function EmptyDetailPanel() {
+  return (
+    <aside
+      className="panel detail-panel empty-detail-panel"
+      aria-labelledby="empty-detail-title"
+      aria-live="polite"
+    >
+      <div className="detail-header">
+        <span className="entity-type">No selection</span>
+        <h2 id="empty-detail-title">No matching catalog entries.</h2>
+      </div>
+
+      <p className="detail-summary">Try another search term or saved view.</p>
     </aside>
   )
 }
