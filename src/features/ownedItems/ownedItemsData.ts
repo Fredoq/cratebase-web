@@ -1,4 +1,9 @@
-export type OwnedItemStatus = 'Owned' | 'Wanted' | 'Sold' | 'Needs digitization'
+export type OwnedItemStatus =
+  | 'Owned'
+  | 'Wanted'
+  | 'Sold'
+  | 'Needs digitization'
+  | 'Not recorded'
 
 export type OwnedItemRecord = {
   id: string
