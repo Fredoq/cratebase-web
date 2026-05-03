@@ -1218,7 +1218,19 @@ describe('App', () => {
       within(tracksSection).getByText('Basement Dub B'),
     ).toBeInTheDocument()
 
-    await user.click(screen.getByRole('link', { name: 'Tracks' }))
+    await user.click(
+      within(tracksSection).getByRole('link', { name: 'Basement Dub A' }),
+    )
+
+    expect(
+      within(screen.getByRole('banner')).getByRole('heading', {
+        name: 'Tracks',
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('complementary', { name: 'Basement Dub A' }),
+    ).toBeInTheDocument()
+
     await user.type(
       screen.getByRole('searchbox', { name: 'Search tracks' }),
       'Basement Dub',

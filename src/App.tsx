@@ -1,7 +1,7 @@
 import './App.css'
 import { useEffect, useState } from 'react'
 import { AppShell } from './app/AppShell'
-import { resolveRoute, type AppRoutePath } from './app/routes'
+import { isAppRoutePath, resolveRoute, type AppRoutePath } from './app/routes'
 import { ArtistsWorkspace } from './features/artists/ArtistsWorkspace'
 import {
   artistRecords,
@@ -61,13 +61,31 @@ function App() {
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
 
-  const navigate = (path: AppRoutePath) => {
-    if (window.location.pathname !== path) {
-      window.history.pushState({}, '', path)
+  const navigateToUrl = (href: string) => {
+    const nextUrl = new URL(href, window.location.origin)
+
+    if (
+      nextUrl.origin !== window.location.origin ||
+      !isAppRoutePath(nextUrl.pathname)
+    ) {
+      return false
     }
 
-    setActiveRoute(resolveRoute(path))
+    const nextPath = `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`
+    const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`
+
+    if (currentPath !== nextPath) {
+      window.history.pushState({}, '', nextPath)
+    }
+
+    setActiveRoute(resolveRoute(nextUrl.pathname))
     setActionStatus(null)
+
+    return true
+  }
+
+  const navigate = (path: AppRoutePath) => {
+    navigateToUrl(path)
   }
 
   const handleRouteAction = () => {
@@ -94,6 +112,7 @@ function App() {
       actionStatus={actionStatus}
       activeRoute={activeRoute}
       onNavigate={navigate}
+      onNavigateToUrl={navigateToUrl}
       onRouteAction={handleRouteAction}
     >
       {renderWorkspace(

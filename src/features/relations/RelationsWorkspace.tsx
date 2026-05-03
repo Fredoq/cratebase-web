@@ -46,7 +46,7 @@ export function RelationsWorkspace({
 }: RelationsWorkspaceProps) {
   const [query, setQuery] = useState('')
   const [selectedRelationId, setSelectedRelationId] = useState(
-    relationRecords[0].id,
+    relationRecords[0]?.id ?? '',
   )
   const [manualRelations, setManualRelations] = useState<RelationRecord[]>([])
   const relations = useMemo(() => {
