@@ -10,6 +10,7 @@ import {
   relationTouchesLink,
   uniqueValues,
 } from '../catalog/catalogGraph'
+import { FilterSelect } from '../catalog/FilterSelect'
 import { useCatalogSelection } from '../catalog/useCatalogSelection'
 import type { PlaylistRecord } from '../playlists/playlistsData'
 import { releaseRecords, type ReleaseRecord } from '../releases/releasesData'
@@ -374,29 +375,6 @@ type SearchFieldProps = {
   placeholder: string
   query: string
   onQueryChange: (query: string) => void
-}
-
-type FilterSelectProps = {
-  label: string
-  value: string
-  values: string[]
-  onChange: (value: string) => void
-}
-
-function FilterSelect({ label, value, values, onChange }: FilterSelectProps) {
-  return (
-    <label className="filter-control">
-      <span>{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
-        <option value="">All</option>
-        {values.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
-  )
 }
 
 function SearchField({

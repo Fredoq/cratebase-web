@@ -11,6 +11,7 @@ import {
   relationTouchesLink,
   uniqueValues,
 } from '../catalog/catalogGraph'
+import { FilterSelect } from '../catalog/FilterSelect'
 import { useCatalogSelection } from '../catalog/useCatalogSelection'
 import { artistRecords, type ArtistRecord } from '../artists/artistsData'
 import type { OwnedItemRecord } from '../ownedItems/ownedItemsData'
@@ -628,29 +629,6 @@ type SearchFieldProps = {
   onQueryChange: (query: string) => void
 }
 
-type FilterSelectProps = {
-  label: string
-  value: string
-  values: string[]
-  onChange: (value: string) => void
-}
-
-function FilterSelect({ label, value, values, onChange }: FilterSelectProps) {
-  return (
-    <label className="filter-control">
-      <span>{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
-        <option value="">All</option>
-        {values.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
-  )
-}
-
 function SearchField({
   label,
   placeholder,
@@ -778,7 +756,8 @@ function ReleaseDetail({
   const linkedOwnedItems = ownedItems.filter(
     (item) =>
       item.releaseId === release.id ||
-      item.releaseTitle.toLowerCase() === release.title.toLowerCase(),
+      (item.releaseTitle.toLowerCase() === release.title.toLowerCase() &&
+        item.artist.toLowerCase() === release.artist.toLowerCase()),
   )
   const linkedRelations = relations.filter(
     (relation) =>

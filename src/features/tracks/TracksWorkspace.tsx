@@ -10,6 +10,7 @@ import {
   relationTouchesLink,
   uniqueValues,
 } from '../catalog/catalogGraph'
+import { FilterSelect } from '../catalog/FilterSelect'
 import { useCatalogSelection } from '../catalog/useCatalogSelection'
 import { artistRecords, type ArtistRecord } from '../artists/artistsData'
 import type { PlaylistRecord } from '../playlists/playlistsData'
@@ -68,6 +69,7 @@ export function TracksWorkspace({
         (!filters.creditRole ||
           track.credits.some((credit) => credit.role === filters.creditRole)) &&
         (!filters.relationType ||
+          track.versionHint === filters.relationType ||
           track.relations.some(
             (relation) => relation.type === filters.relationType,
           )) &&
@@ -134,9 +136,10 @@ export function TracksWorkspace({
             label="Version or relation type"
             value={filters.relationType}
             values={uniqueValues(
-              tracks.flatMap((track) =>
-                track.relations.map((relation) => relation.type),
-              ),
+              tracks.flatMap((track) => [
+                track.versionHint,
+                ...track.relations.map((relation) => relation.type),
+              ]),
             )}
             onChange={(relationType) =>
               setFilters((current) => ({ ...current, relationType }))
@@ -213,13 +216,19 @@ function TrackEntryForm({
   const selectedRelease = releases.find(
     (record) => record.id === selectedReleaseId,
   )
+  const candidateArtist = (
+    selectedArtist?.name ??
+    selectedRelease?.artist ??
+    artist.trim()
+  ).toLowerCase()
+  const candidateRelease = (
+    selectedRelease?.title ?? release.trim()
+  ).toLowerCase()
   const duplicateTrack = tracks.find(
     (track) =>
       track.title.toLowerCase() === title.trim().toLowerCase() &&
-      track.artist.toLowerCase() ===
-        (selectedArtist?.name ?? artist.trim()).toLowerCase() &&
-      track.release.title.toLowerCase() ===
-        (selectedRelease?.title ?? release.trim()).toLowerCase(),
+      track.artist.toLowerCase() === candidateArtist &&
+      track.release.title.toLowerCase() === candidateRelease,
   )
 
   function handleSubmit() {
@@ -300,9 +309,7 @@ function TrackEntryForm({
           required
         />
       </label>
-      {duplicateTrack &&
-      (artist.trim() || selectedArtist) &&
-      (release.trim() || selectedRelease) ? (
+      {duplicateTrack ? (
         <p className="manual-entry-warning manual-entry-wide" role="status">
           Likely duplicate track: {duplicateTrack.title} by{' '}
           {duplicateTrack.artist} on {duplicateTrack.release.title}. Submit is
@@ -448,29 +455,6 @@ type SearchFieldProps = {
   placeholder: string
   query: string
   onQueryChange: (query: string) => void
-}
-
-type FilterSelectProps = {
-  label: string
-  value: string
-  values: string[]
-  onChange: (value: string) => void
-}
-
-function FilterSelect({ label, value, values, onChange }: FilterSelectProps) {
-  return (
-    <label className="filter-control">
-      <span>{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
-        <option value="">All</option>
-        {values.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
-  )
 }
 
 function SearchField({

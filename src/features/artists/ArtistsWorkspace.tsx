@@ -12,6 +12,7 @@ import {
   type CatalogLinkData,
   type CatalogEntityKind,
 } from '../catalog/catalogLinks'
+import { FilterSelect } from '../catalog/FilterSelect'
 import {
   playlistTouchesArtist,
   relationTouchesLink,
@@ -331,29 +332,6 @@ type SearchFieldProps = {
   onQueryChange: (query: string) => void
 }
 
-type FilterSelectProps = {
-  label: string
-  value: string
-  values: string[]
-  onChange: (value: string) => void
-}
-
-function FilterSelect({ label, value, values, onChange }: FilterSelectProps) {
-  return (
-    <label className="filter-control">
-      <span>{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
-        <option value="">All</option>
-        {values.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
-  )
-}
-
 function SearchField({
   label,
   placeholder,
@@ -450,45 +428,65 @@ type ArtistDetailProps = {
 }
 
 function ArtistDetail({ artist, catalogData }: ArtistDetailProps) {
-  const artistLink = { kind: 'artist', id: artist.id } as const
-  const linkedReleases = catalogData.releases.filter(
-    (release) =>
-      release.artistId === artist.id ||
-      release.artist.toLowerCase() === artist.name.toLowerCase() ||
-      artist.credits.some(
-        (credit) =>
-          credit.scope.toLowerCase().includes('release') &&
-          credit.target.toLowerCase() === release.title.toLowerCase(),
-      ),
-  )
-  const linkedTracks = catalogData.tracks.filter(
-    (track) =>
-      track.artistId === artist.id ||
-      track.artist.toLowerCase() === artist.name.toLowerCase() ||
-      track.credits.some(
-        (credit) => credit.artist.toLowerCase() === artist.name.toLowerCase(),
-      ) ||
-      artist.credits.some(
-        (credit) =>
-          credit.scope.toLowerCase().includes('track') &&
-          credit.target.toLowerCase() === track.title.toLowerCase(),
-      ),
-  )
-  const linkedOwnedItems = catalogData.ownedItems.filter(
-    (item) =>
-      item.artist.toLowerCase() === artist.name.toLowerCase() ||
-      linkedReleases.some((release) => release.id === item.releaseId),
-  )
-  const linkedRelations = (catalogData.relations ?? []).filter(
-    (relation) =>
-      relationTouchesLink(relation, artistLink) ||
-      relation.source.toLowerCase() === artist.name.toLowerCase() ||
-      relation.target.toLowerCase() === artist.name.toLowerCase() ||
-      relation.linkedEntity.toLowerCase() === artist.name.toLowerCase(),
-  )
-  const linkedPlaylists = (catalogData.playlists ?? []).filter((playlist) =>
-    playlistTouchesArtist(playlist, artist),
-  )
+  const {
+    linkedOwnedItems,
+    linkedPlaylists,
+    linkedRelations,
+    linkedReleases,
+    linkedTracks,
+  } = useMemo(() => {
+    const artistLink = { kind: 'artist', id: artist.id } as const
+    const artistName = artist.name.toLowerCase()
+    const releaseCreditTargets = new Set(
+      artist.credits
+        .filter((credit) => credit.scope.toLowerCase().includes('release'))
+        .map((credit) => credit.target.toLowerCase()),
+    )
+    const trackCreditTargets = new Set(
+      artist.credits
+        .filter((credit) => credit.scope.toLowerCase().includes('track'))
+        .map((credit) => credit.target.toLowerCase()),
+    )
+    const releases = catalogData.releases.filter(
+      (release) =>
+        release.artistId === artist.id ||
+        release.artist.toLowerCase() === artistName ||
+        releaseCreditTargets.has(release.title.toLowerCase()),
+    )
+    const releaseIds = new Set(releases.map((release) => release.id))
+    const tracks = catalogData.tracks.filter(
+      (track) =>
+        track.artistId === artist.id ||
+        track.artist.toLowerCase() === artistName ||
+        track.credits.some(
+          (credit) => credit.artist.toLowerCase() === artistName,
+        ) ||
+        trackCreditTargets.has(track.title.toLowerCase()),
+    )
+    const ownedItems = catalogData.ownedItems.filter(
+      (item) =>
+        item.artist.toLowerCase() === artistName ||
+        (item.releaseId ? releaseIds.has(item.releaseId) : false),
+    )
+    const relations = (catalogData.relations ?? []).filter(
+      (relation) =>
+        relationTouchesLink(relation, artistLink) ||
+        relation.source.toLowerCase() === artistName ||
+        relation.target.toLowerCase() === artistName ||
+        relation.linkedEntity.toLowerCase() === artistName,
+    )
+    const playlists = (catalogData.playlists ?? []).filter((playlist) =>
+      playlistTouchesArtist(playlist, artist),
+    )
+
+    return {
+      linkedOwnedItems: ownedItems,
+      linkedPlaylists: playlists,
+      linkedRelations: relations,
+      linkedReleases: releases,
+      linkedTracks: tracks,
+    }
+  }, [artist, catalogData])
 
   return (
     <aside className="panel detail-panel" aria-labelledby="artist-detail-title">

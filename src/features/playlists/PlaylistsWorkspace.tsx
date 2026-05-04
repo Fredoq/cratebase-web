@@ -6,7 +6,8 @@ import {
   splitCommaList,
   textOrFallback,
 } from '../manualEntry/manualEntryUtils'
-import { uniqueValues } from '../catalog/catalogGraph'
+import { FilterSelect } from '../catalog/FilterSelect'
+import { playlistTouchesArtist, uniqueValues } from '../catalog/catalogGraph'
 import { useCatalogSelection } from '../catalog/useCatalogSelection'
 import type { ArtistRecord } from '../artists/artistsData'
 import type { OwnedItemRecord } from '../ownedItems/ownedItemsData'
@@ -39,7 +40,7 @@ export function PlaylistsWorkspace({
   onAddPlaylist,
   onManualEntryClose = () => {},
   ownedItems = [],
-  playlists: providedPlaylists,
+  playlists: controlledPlaylists,
   releases = releaseRecords,
   tracks = trackRecords,
 }: PlaylistsWorkspaceProps) {
@@ -49,10 +50,10 @@ export function PlaylistsWorkspace({
     rule: '',
     referenceLink: '',
   })
-  const [manualPlaylists, setManualPlaylists] = useState<PlaylistRecord[]>([])
-  const playlists = useMemo(() => {
-    return providedPlaylists ?? [...playlistRecords, ...manualPlaylists]
-  }, [manualPlaylists, providedPlaylists])
+  const [fallbackPlaylists, setFallbackPlaylists] = useState<PlaylistRecord[]>(
+    () => playlistRecords,
+  )
+  const playlists = controlledPlaylists ?? fallbackPlaylists
 
   const visiblePlaylists = useMemo(() => {
     return filterPlaylists(query, playlists).filter(
@@ -82,7 +83,10 @@ export function PlaylistsWorkspace({
     if (onAddPlaylist) {
       onAddPlaylist(playlist)
     } else {
-      setManualPlaylists((currentPlaylists) => [...currentPlaylists, playlist])
+      setFallbackPlaylists((currentPlaylists) => [
+        ...currentPlaylists,
+        playlist,
+      ])
     }
 
     setQuery('')
@@ -354,29 +358,6 @@ type SearchFieldProps = {
   onQueryChange: (query: string) => void
 }
 
-type FilterSelectProps = {
-  label: string
-  value: string
-  values: string[]
-  onChange: (value: string) => void
-}
-
-function FilterSelect({ label, value, values, onChange }: FilterSelectProps) {
-  return (
-    <label className="filter-control">
-      <span>{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
-        <option value="">All</option>
-        {values.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
-  )
-}
-
 function SearchField({
   label,
   placeholder,
@@ -500,7 +481,7 @@ function PlaylistDetail({
   tracks,
 }: PlaylistDetailProps) {
   const relatedArtists = artists.filter((artist) =>
-    playlistSearchText(playlist).includes(artist.name.toLowerCase()),
+    playlistTouchesArtist(playlist, artist),
   )
   const relatedOwnedItems = ownedItems.filter((item) =>
     playlist.linkedReleases.some(

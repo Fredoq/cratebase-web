@@ -2,6 +2,7 @@ import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import App from './App'
+import { buildCatalogEntries } from './features/catalog/catalogGraph'
 import { createManualRecordId } from './features/manualEntry/manualEntryUtils'
 
 describe('App', () => {
@@ -1930,6 +1931,54 @@ describe('App', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('derives release catalog statuses from every owned copy', () => {
+    const entries = buildCatalogEntries({
+      artists: [],
+      releases: [
+        {
+          id: 'mixed-copy-release',
+          title: 'Mixed Copy Release',
+          artist: 'Catalog Tester',
+          type: 'Album',
+          year: '2026',
+          label: 'Test Label',
+          genres: [],
+          tags: [],
+          releaseNotes: 'Release with multiple concrete copy states.',
+          ownedCopies: [
+            {
+              id: 'mixed-copy-owned',
+              medium: 'CD',
+              status: 'Owned',
+              storage: 'Shelf A',
+              condition: 'Very Good',
+              note: 'Cataloged copy.',
+            },
+            {
+              id: 'mixed-copy-transfer',
+              medium: 'Cassette',
+              status: 'Needs digitization',
+              storage: 'Shelf B',
+              condition: 'Good',
+              note: 'Transfer pending.',
+            },
+          ],
+        },
+      ],
+      tracks: [],
+      ownedItems: [],
+      relations: [],
+      playlists: [],
+    })
+    const releaseEntry = entries.find(
+      (entry) => entry.id === 'release:mixed-copy-release',
+    )
+
+    expect(releaseEntry?.statuses).toEqual(['Owned', 'Needs digitization'])
+    expect(releaseEntry?.status).toBe('Owned, Needs digitization')
+    expect(releaseEntry?.statusTone).toBe('amber')
+  })
+
   it('shows duplicate warnings for manual records without blocking submit', async () => {
     window.history.pushState({}, '', '/artists')
     const user = userEvent.setup()
@@ -1945,6 +1994,106 @@ describe('App', () => {
     expect(
       screen.getAllByRole('row', { name: /aphex twin/i }).length,
     ).toBeGreaterThan(1)
+  })
+
+  it('filters track versions and warns on duplicate tracks when artist comes from the selected release', async () => {
+    window.history.pushState({}, '', '/tracks')
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.selectOptions(
+      screen.getByLabelText('Version or relation type'),
+      'Album version',
+    )
+
+    expect(screen.getByRole('row', { name: /polynomial-c/i })).toBeVisible()
+    expect(
+      screen.queryByRole('row', { name: /yeah pretentious mix/i }),
+    ).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Add track' }))
+    const form = screen.getByRole('form', { name: 'Add track' })
+
+    await user.type(within(form).getByLabelText('Title'), 'Polynomial-C')
+    await user.selectOptions(
+      within(form).getByLabelText('Existing release'),
+      'selected-ambient-works-85-92',
+    )
+
+    expect(screen.getByText(/likely duplicate track/i)).toBeInTheDocument()
+
+    await user.selectOptions(
+      screen.getByLabelText('Version or relation type'),
+      '',
+    )
+    await user.click(screen.getByRole('button', { name: 'Add record' }))
+
+    expect(
+      screen.getAllByRole('row', { name: /polynomial-c/i }).length,
+    ).toBeGreaterThan(1)
+  })
+
+  it('filters manual releases and keeps draft track backlinks linked after duplicate warnings remain non-blocking', async () => {
+    window.history.pushState({}, '', '/releases')
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.selectOptions(screen.getByLabelText('Label'), 'Warp')
+
+    expect(
+      screen.getByRole('row', { name: /selected ambient works 85-92/i }),
+    ).toBeVisible()
+    expect(
+      screen.queryByRole('row', { name: /blue monday/i }),
+    ).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Add release' }))
+    let form = screen.getByRole('form', { name: 'Add release' })
+
+    await user.type(within(form).getByLabelText('Title'), 'Blue Monday')
+    await user.selectOptions(
+      within(form).getByLabelText('Existing artist'),
+      'new-order',
+    )
+
+    expect(screen.getByText(/likely duplicate release/i)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    await user.selectOptions(screen.getByLabelText('Label'), '')
+    await user.click(screen.getByRole('button', { name: 'Add release' }))
+    form = screen.getByRole('form', { name: 'Add release' })
+
+    await user.type(within(form).getByLabelText('Title'), 'Review Shelf Dub')
+    await user.type(within(form).getByLabelText('Artist'), 'Review Artist')
+    await user.type(within(form).getByLabelText('Label'), 'Review Label')
+    await user.type(within(form).getByLabelText('Media'), 'Digital')
+    await user.click(
+      within(form).getByRole('button', { name: 'Add track row' }),
+    )
+    await user.type(
+      within(form).getByLabelText('Draft track 1 title'),
+      'Review Shelf Dub Version',
+    )
+    await user.type(
+      within(form).getByLabelText('Draft track 1 file format'),
+      'FLAC',
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Add record' }))
+    await user.selectOptions(screen.getByLabelText('Label'), 'Review Label')
+
+    expect(screen.getByRole('row', { name: /review shelf dub/i })).toBeVisible()
+
+    const releasePanel = screen.getByRole('complementary', {
+      name: 'Review Shelf Dub',
+    })
+    const tracksSection = detailSection(releasePanel, 'Tracks')
+
+    expect(
+      within(tracksSection).getByRole('link', {
+        name: 'Review Shelf Dub Version',
+      }),
+    ).toHaveAttribute('href', expect.stringContaining('/tracks?track='))
   })
 
   it('updates release backlinks immediately after a manual owned item is created', async () => {

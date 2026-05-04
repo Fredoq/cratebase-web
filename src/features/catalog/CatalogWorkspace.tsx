@@ -6,6 +6,7 @@ import type { PlaylistRecord } from '../playlists/playlistsData'
 import type { ReleaseRecord } from '../releases/releasesData'
 import type { RelationRecord } from '../relations/relationsData'
 import type { TrackRecord } from '../tracks/tracksData'
+import { FilterSelect } from './FilterSelect'
 import {
   buildCatalogEntries,
   matchesTerms,
@@ -127,7 +128,7 @@ function buildFilterOptions(entries: CatalogEntry[]) {
   return {
     entityTypes: uniqueValues(entries.map((entry) => entry.type)),
     media: uniqueValues(entries.flatMap((entry) => entry.media)),
-    statuses: uniqueValues(entries.map((entry) => entry.status)),
+    statuses: uniqueValues(entries.flatMap((entry) => entry.statuses)),
     roles: uniqueValues(entries.flatMap((entry) => entry.credits)),
     labels: uniqueValues(entries.map((entry) => entry.label)),
     tags: uniqueValues(entries.flatMap((entry) => entry.tags)),
@@ -142,9 +143,9 @@ function matchesSavedView(entry: CatalogEntry, view: SavedView) {
     case 'All':
       return true
     case 'Owned':
-      return entry.status === 'Owned'
+      return entry.statuses.includes('Owned')
     case 'Needs digitization':
-      return entry.status === 'Needs digitization'
+      return entry.statuses.includes('Needs digitization')
     case 'Lossless':
       return (
         entry.status === 'Lossless file' ||
@@ -160,7 +161,7 @@ function matchesFilters(entry: CatalogEntry, filters: CatalogFilters) {
   return (
     (!filters.entityType || entry.type === filters.entityType) &&
     (!filters.media || entry.media.includes(filters.media)) &&
-    (!filters.status || entry.status === filters.status) &&
+    (!filters.status || entry.statuses.includes(filters.status)) &&
     (!filters.role || entry.credits.includes(filters.role)) &&
     (!filters.label || entry.label === filters.label) &&
     (!filters.tag || entry.tags.includes(filters.tag)) &&
@@ -290,29 +291,6 @@ function FilterBar({
         />
       </div>
     </div>
-  )
-}
-
-type FilterSelectProps = {
-  label: string
-  value: string
-  values: string[]
-  onChange: (value: string) => void
-}
-
-function FilterSelect({ label, value, values, onChange }: FilterSelectProps) {
-  return (
-    <label className="filter-control">
-      <span>{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
-        <option value="">All</option>
-        {values.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
   )
 }
 

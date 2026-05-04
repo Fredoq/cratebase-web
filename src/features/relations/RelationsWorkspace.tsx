@@ -15,6 +15,7 @@ import {
   type CatalogLinkData,
   type CatalogLinkOption,
 } from '../catalog/catalogLinks'
+import { FilterSelect } from '../catalog/FilterSelect'
 import { uniqueValues } from '../catalog/catalogGraph'
 import { useCatalogSelection } from '../catalog/useCatalogSelection'
 import {
@@ -455,29 +456,6 @@ type SearchFieldProps = {
   placeholder: string
   query: string
   onQueryChange: (query: string) => void
-}
-
-type FilterSelectProps = {
-  label: string
-  value: string
-  values: string[]
-  onChange: (value: string) => void
-}
-
-function FilterSelect({ label, value, values, onChange }: FilterSelectProps) {
-  return (
-    <label className="filter-control">
-      <span>{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
-        <option value="">All</option>
-        {values.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
-  )
 }
 
 function SearchField({

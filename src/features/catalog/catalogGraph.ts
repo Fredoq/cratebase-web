@@ -26,6 +26,7 @@ export type CatalogEntry = {
   label: string
   media: string[]
   status: string
+  statuses: string[]
   statusTone: 'green' | 'amber' | 'blue' | 'gray'
   relationHint: string
   credits: string[]
@@ -114,7 +115,18 @@ export function playlistTouchesArtist(
   playlist: PlaylistRecord,
   artist: ArtistRecord,
 ) {
-  return includesText(playlistSearchText(playlist), artist.name)
+  return (
+    playlist.curator.toLowerCase() === artist.name.toLowerCase() ||
+    playlist.tracks.some(
+      (track) =>
+        track.artist.toLowerCase() === artist.name.toLowerCase() ||
+        track.release.artist.toLowerCase() === artist.name.toLowerCase(),
+    ) ||
+    playlist.linkedReleases.some(
+      (release) => release.artist.toLowerCase() === artist.name.toLowerCase(),
+    ) ||
+    phraseAppearsInText(playlistFreeText(playlist), artist.name)
+  )
 }
 
 export function relationDisplayTitle(relation: RelationRecord) {
@@ -174,6 +186,7 @@ function artistEntry(artist: ArtistRecord): CatalogEntry {
 function releaseEntry(release: ReleaseRecord): CatalogEntry {
   const media = uniqueValues(release.ownedCopies.map((copy) => copy.medium))
   const statuses = uniqueValues(release.ownedCopies.map((copy) => copy.status))
+  const status = summarizeReleaseStatuses(statuses)
   const link = { kind: 'release', id: release.id } as const
 
   return makeEntry({
@@ -186,8 +199,9 @@ function releaseEntry(release: ReleaseRecord): CatalogEntry {
     year: release.year,
     label: release.label,
     media,
-    status: statuses[0] ?? 'Not recorded',
-    statusTone: statusTone(statuses[0] ?? ''),
+    status,
+    statuses,
+    statusTone: aggregateStatusTone(statuses),
     relationHint: release.releaseNotes,
     credits: ['Main artist'],
     tags: [...release.genres, ...release.tags],
@@ -389,7 +403,8 @@ function playlistEntry(playlist: PlaylistRecord): CatalogEntry {
 }
 
 function makeEntry(
-  entry: Omit<CatalogEntry, 'href' | 'searchText'> & {
+  entry: Omit<CatalogEntry, 'href' | 'searchText' | 'statuses'> & {
+    statuses?: string[]
     searchParts: string[]
   },
 ): CatalogEntry {
@@ -398,6 +413,7 @@ function makeEntry(
   return {
     ...baseEntry,
     href: catalogEntityHref(entry.link),
+    statuses: entry.statuses ?? [entry.status],
     searchText: searchParts.join(' ').toLowerCase(),
   }
 }
@@ -450,20 +466,59 @@ function includesText(searchText: string, value: string) {
   return searchText.includes(normalizeText(value))
 }
 
+function playlistFreeText(playlist: PlaylistRecord) {
+  const selectionText =
+    playlist.type === 'Manual'
+      ? [playlist.manualSelection.source, playlist.manualSelection.note]
+      : [playlist.smartRules.summary, ...playlist.smartRules.criteria]
+
+  return [
+    playlist.name,
+    playlist.description,
+    playlist.curator,
+    playlist.yearRange,
+    ...selectionText,
+    ...playlist.ruleHints,
+  ].join(' ')
+}
+
+function phraseAppearsInText(searchText: string, phrase: string) {
+  const normalizedText = normalizeText(searchText)
+  const normalizedPhrase = normalizeText(phrase)
+
+  if (!normalizedPhrase) {
+    return false
+  }
+
+  return new RegExp(`(^|\\W)${escapeRegExp(normalizedPhrase)}($|\\W)`).test(
+    normalizedText,
+  )
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 function linkMatches(left: CatalogLink | undefined, right: CatalogLink) {
   return left?.kind === right.kind && left.id === right.id
 }
 
-function statusTone(status: string): CatalogEntry['statusTone'] {
-  switch (status) {
-    case 'Owned':
-      return 'green'
-    case 'Wanted':
-    case 'Lossless file':
-      return 'blue'
-    case 'Needs digitization':
-      return 'amber'
-    default:
-      return 'gray'
+function summarizeReleaseStatuses(statuses: string[]) {
+  return statuses.length > 0 ? statuses.join(', ') : 'Not recorded'
+}
+
+function aggregateStatusTone(statuses: string[]): CatalogEntry['statusTone'] {
+  if (statuses.includes('Needs digitization')) {
+    return 'amber'
   }
+
+  if (statuses.includes('Owned')) {
+    return 'green'
+  }
+
+  if (statuses.includes('Wanted')) {
+    return 'blue'
+  }
+
+  return 'gray'
 }
