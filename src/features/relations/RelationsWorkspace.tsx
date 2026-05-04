@@ -136,7 +136,16 @@ export function RelationsWorkspace({
       onDeleteRelation(relationId)
     } else {
       setManualRelations((currentRelations) =>
-        currentRelations.filter((relation) => relation.id !== relationId),
+        currentRelations
+          .map((relation) =>
+            relation.id === relationId
+              ? relation
+              : clearRelationLink(relation, {
+                  kind: 'relation',
+                  id: relationId,
+                }),
+          )
+          .filter((relation) => relation.id !== relationId),
       )
     }
 
@@ -487,6 +496,30 @@ function linkFromOption(option: CatalogLinkOption): CatalogLink {
     kind: option.kind,
     id: option.id,
   }
+}
+
+function clearRelationLink(
+  relation: RelationRecord,
+  link: CatalogLink,
+): RelationRecord {
+  const sourceMatches = linkMatches(relation.sourceLink, link)
+  const targetMatches = linkMatches(relation.targetLink, link)
+  const linkedEntityMatches = linkMatches(relation.linkedEntityLink, link)
+
+  return {
+    ...relation,
+    sourceLink: sourceMatches ? undefined : relation.sourceLink,
+    sourceType: sourceMatches ? 'Manual source' : relation.sourceType,
+    targetLink: targetMatches ? undefined : relation.targetLink,
+    targetType: targetMatches ? 'Manual target' : relation.targetType,
+    linkedEntityLink: linkedEntityMatches
+      ? undefined
+      : relation.linkedEntityLink,
+  }
+}
+
+function linkMatches(left: CatalogLink | undefined, right: CatalogLink) {
+  return left?.kind === right.kind && left.id === right.id
 }
 
 function relationLinkedEntityType(

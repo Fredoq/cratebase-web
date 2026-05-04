@@ -763,6 +763,121 @@ describe('App', () => {
     ).toBeVisible()
   })
 
+  it('deleting a manual relation downgrades relation-backed links immediately', async () => {
+    window.history.pushState({}, '', '/relations')
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Add relation' }))
+    let form = screen.getByRole('form', { name: 'Add relation' })
+    await user.type(within(form).getByLabelText('Source'), 'Referenced Source')
+    await user.type(within(form).getByLabelText('Target'), 'Referenced Target')
+    await user.click(within(form).getByRole('button', { name: 'Add record' }))
+
+    await user.click(screen.getByRole('button', { name: 'Add relation' }))
+    form = screen.getByRole('form', { name: 'Add relation' })
+    await selectVisibleOption(
+      user,
+      within(form).getByLabelText('Existing source'),
+      'Relation: Referenced Source to Referenced Target',
+    )
+    await selectVisibleOption(
+      user,
+      within(form).getByLabelText('Existing target'),
+      'Relation: Referenced Source to Referenced Target',
+    )
+    await selectVisibleOption(
+      user,
+      within(form).getByLabelText('Existing linked entity'),
+      'Relation: Referenced Source to Referenced Target',
+    )
+    await user.click(within(form).getByRole('button', { name: 'Add record' }))
+
+    const dependentRelationName =
+      'Referenced Source to Referenced Target to Referenced Source to Referenced Target'
+    const dependentPanel = screen.getByRole('complementary', {
+      name: dependentRelationName,
+    })
+
+    expect(
+      within(detailSection(dependentPanel, 'Endpoints')).getAllByRole('link', {
+        name: 'Referenced Source to Referenced Target',
+      }),
+    ).toHaveLength(2)
+    expect(
+      within(detailSection(dependentPanel, 'Linked evidence')).getByRole(
+        'link',
+        { name: 'Referenced Source to Referenced Target' },
+      ),
+    ).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: /^Referenced Source Referenced Target$/,
+      }),
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Delete session record' }),
+    )
+    await user.click(
+      screen.getByRole('button', {
+        name: /^Referenced Source to Referenced Target Referenced Source to Referenced Target$/,
+      }),
+    )
+
+    const updatedPanel = screen.getByRole('complementary', {
+      name: dependentRelationName,
+    })
+    const endpoints = detailSection(updatedPanel, 'Endpoints')
+    const linkedEvidence = detailSection(updatedPanel, 'Linked evidence')
+
+    expect(
+      within(endpoints).queryByRole('link', {
+        name: 'Referenced Source to Referenced Target',
+      }),
+    ).not.toBeInTheDocument()
+    expect(
+      within(linkedEvidence).queryByRole('link', {
+        name: 'Referenced Source to Referenced Target',
+      }),
+    ).not.toBeInTheDocument()
+    expect(
+      within(endpoints).getAllByText('Referenced Source to Referenced Target'),
+    ).toHaveLength(2)
+    expect(
+      within(linkedEvidence).getByText(
+        'Referenced Source to Referenced Target',
+      ),
+    ).toBeVisible()
+
+    await user.click(
+      screen.getByRole('button', { name: 'Edit session record' }),
+    )
+
+    const editForm = screen.getByRole('form', { name: 'Edit relation' })
+
+    expect(within(editForm).getByLabelText('Existing source')).toHaveValue('')
+    expect(within(editForm).getByLabelText('Existing target')).toHaveValue('')
+    expect(
+      within(editForm).getByLabelText('Existing linked entity'),
+    ).toHaveValue('')
+    expect(within(editForm).getByLabelText('Source')).toBeEnabled()
+    expect(within(editForm).getByLabelText('Source')).toHaveValue(
+      'Referenced Source to Referenced Target',
+    )
+    expect(within(editForm).getByLabelText('Target')).toBeEnabled()
+    expect(within(editForm).getByLabelText('Target')).toHaveValue(
+      'Referenced Source to Referenced Target',
+    )
+    expect(within(editForm).getByLabelText('Linked entity')).toBeEnabled()
+    expect(within(editForm).getByLabelText('Linked entity')).toHaveValue(
+      'Referenced Source to Referenced Target',
+    )
+
+    confirmSpy.mockRestore()
+  })
+
   it('warns about likely duplicates during edit without blocking save', async () => {
     window.history.pushState({}, '', '/artists')
     const user = userEvent.setup()

@@ -410,7 +410,13 @@ function App() {
     }
 
     setManualRelations((currentRelations) =>
-      currentRelations.filter((relation) => relation.id !== relationId),
+      currentRelations
+        .map((relation) =>
+          relation.id === relationId
+            ? relation
+            : clearRelationLink(relation, { kind: 'relation', id: relationId }),
+        )
+        .filter((relation) => relation.id !== relationId),
     )
   }
 
