@@ -185,6 +185,7 @@ export function ReleasesWorkspace({
           <ReleaseEntryForm
             artists={artists}
             initialRelease={editingRelease}
+            key={editingRelease.id}
             releases={releases}
             onCancel={() => setEditingReleaseId('')}
             onSubmit={(release) => handleUpdateRelease(release)}

@@ -138,12 +138,7 @@ function App() {
   }
 
   const handleUpdateRelease = (release: ReleaseRecord) => {
-    const previousRelease = releases.find((record) => record.id === release.id)
-
-    if (
-      !previousRelease ||
-      !manualReleases.some((record) => record.id === release.id)
-    ) {
+    if (!manualReleases.some((record) => record.id === release.id)) {
       return
     }
 
@@ -178,11 +173,7 @@ function App() {
     setManualRelations((currentRelations) =>
       currentRelations.map((relation) =>
         updateRelationLinkText(
-          updateRelationFreeText(
-            relation,
-            previousRelease.title,
-            release.title,
-          ),
+          relation,
           { kind: 'release', id: release.id },
           release.title,
         ),
@@ -220,12 +211,7 @@ function App() {
   }
 
   const handleUpdateTrack = (track: TrackRecord) => {
-    const previousTrack = tracks.find((record) => record.id === track.id)
-
-    if (
-      !previousTrack ||
-      !manualTracks.some((record) => record.id === track.id)
-    ) {
+    if (!manualTracks.some((record) => record.id === track.id)) {
       return
     }
 
@@ -237,7 +223,7 @@ function App() {
     setManualRelations((currentRelations) =>
       currentRelations.map((relation) =>
         updateRelationLinkText(
-          updateRelationFreeText(relation, previousTrack.title, track.title),
+          relation,
           { kind: 'track', id: track.id },
           track.title,
         ),
@@ -271,12 +257,7 @@ function App() {
   }
 
   const handleUpdateOwnedItem = (item: OwnedItemRecord) => {
-    const previousItem = ownedItems.find((record) => record.id === item.id)
-
-    if (
-      !previousItem ||
-      !manualOwnedItems.some((record) => record.id === item.id)
-    ) {
+    if (!manualOwnedItems.some((record) => record.id === item.id)) {
       return
     }
 
@@ -288,7 +269,7 @@ function App() {
     setManualRelations((currentRelations) =>
       currentRelations.map((relation) =>
         updateRelationLinkText(
-          updateRelationFreeText(relation, previousItem.title, item.title),
+          relation,
           { kind: 'ownedItem', id: item.id },
           item.title,
         ),
@@ -470,23 +451,6 @@ function updateRelationLinkText(
       hint === relation.linkedEntity
         ? name
         : hint,
-    ),
-  }
-}
-
-function updateRelationFreeText(
-  relation: RelationRecord,
-  previousText: string,
-  nextText: string,
-): RelationRecord {
-  return {
-    ...relation,
-    source: relation.source === previousText ? nextText : relation.source,
-    target: relation.target === previousText ? nextText : relation.target,
-    linkedEntity:
-      relation.linkedEntity === previousText ? nextText : relation.linkedEntity,
-    searchHints: relation.searchHints.map((hint) =>
-      hint === previousText ? nextText : hint,
     ),
   }
 }

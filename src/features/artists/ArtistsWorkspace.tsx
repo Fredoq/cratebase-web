@@ -186,6 +186,7 @@ export function ArtistsWorkspace({
           <ArtistEntryForm
             artists={artists}
             initialArtist={editingArtist}
+            key={editingArtist.id}
             onCancel={handleCancelEdit}
             onSubmit={handleUpdateArtist}
           />

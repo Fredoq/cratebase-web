@@ -168,6 +168,7 @@ export function OwnedItemsWorkspace({
           <OwnedItemEntryForm
             initialItem={editingItem}
             items={items}
+            key={editingItem.id}
             onCancel={() => setEditingItemId('')}
             releases={releases}
             onSubmit={handleUpdateItem}

@@ -551,6 +551,146 @@ describe('App', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('preserves existing draft track fields when editing a manual track', async () => {
+    window.history.pushState({}, '', '/releases')
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Add release' }))
+    const releaseForm = screen.getByRole('form', { name: 'Add release' })
+
+    await user.type(
+      within(releaseForm).getByLabelText('Title'),
+      'Numbered Draft Source',
+    )
+    await user.click(
+      within(releaseForm).getByRole('button', { name: 'Add track row' }),
+    )
+    await user.type(
+      within(releaseForm).getByLabelText('Draft track 1 title'),
+      'Numbered Draft Track',
+    )
+    await user.type(
+      within(releaseForm).getByLabelText('Draft track 1 file format'),
+      'FLAC',
+    )
+    await user.click(
+      within(releaseForm).getByRole('button', { name: 'Add record' }),
+    )
+
+    await user.click(screen.getByRole('link', { name: 'Tracks' }))
+    await user.click(
+      screen.getByRole('button', { name: /numbered draft track/i }),
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Edit session record' }),
+    )
+
+    const trackForm = screen.getByRole('form', { name: 'Edit track' })
+    await user.clear(within(trackForm).getByLabelText('Title'))
+    await user.type(
+      within(trackForm).getByLabelText('Title'),
+      'Numbered Draft Track Edited',
+    )
+    await user.click(
+      within(trackForm).getByRole('button', { name: 'Save record' }),
+    )
+
+    expect(
+      screen.getByRole('row', {
+        name: /numbered draft track edited.*track 1/i,
+      }),
+    ).toBeVisible()
+    expect(
+      within(
+        detailSection(
+          screen.getByRole('complementary', {
+            name: 'Numbered Draft Track Edited',
+          }),
+          'Local file metadata',
+        ),
+      ).getByText('FLAC'),
+    ).toBeInTheDocument()
+  })
+
+  it('does not rewrite unrelated relation free text when a manual release with the same title is edited', async () => {
+    window.history.pushState({}, '', '/relations')
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Add relation' }))
+    const relationForm = screen.getByRole('form', { name: 'Add relation' })
+
+    await user.type(
+      within(relationForm).getByLabelText('Source'),
+      'Free Source',
+    )
+    await user.type(
+      within(relationForm).getByLabelText('Target'),
+      'Free Target',
+    )
+    await user.type(
+      within(relationForm).getByLabelText('Linked entity'),
+      'Shared Title',
+    )
+    await user.click(
+      within(relationForm).getByRole('button', { name: 'Add record' }),
+    )
+
+    await user.click(screen.getByRole('link', { name: 'Releases' }))
+    await user.click(screen.getByRole('button', { name: 'Add release' }))
+    let releaseForm = screen.getByRole('form', { name: 'Add release' })
+    await user.type(within(releaseForm).getByLabelText('Title'), 'Shared Title')
+    await user.type(
+      within(releaseForm).getByLabelText('Artist'),
+      'First Artist',
+    )
+    await user.click(
+      within(releaseForm).getByRole('button', { name: 'Add record' }),
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Add release' }))
+    releaseForm = screen.getByRole('form', { name: 'Add release' })
+    await user.type(within(releaseForm).getByLabelText('Title'), 'Shared Title')
+    await user.type(
+      within(releaseForm).getByLabelText('Artist'),
+      'Second Artist',
+    )
+    await user.click(
+      within(releaseForm).getByRole('button', { name: 'Add record' }),
+    )
+
+    await user.click(
+      screen.getByRole('button', { name: 'Edit session record' }),
+    )
+    releaseForm = screen.getByRole('form', { name: 'Edit release' })
+    await user.clear(within(releaseForm).getByLabelText('Title'))
+    await user.type(
+      within(releaseForm).getByLabelText('Title'),
+      'Renamed Shared Title',
+    )
+    await user.click(
+      within(releaseForm).getByRole('button', { name: 'Save record' }),
+    )
+
+    await user.click(screen.getByRole('link', { name: 'Relations' }))
+    await user.click(
+      screen.getByRole('button', { name: /free source free target/i }),
+    )
+
+    const linkedEvidence = detailSection(
+      screen.getByRole('complementary', {
+        name: 'Free Source to Free Target',
+      }),
+      'Linked evidence',
+    )
+
+    expect(within(linkedEvidence).getByText('Shared Title')).toBeInTheDocument()
+    expect(
+      within(linkedEvidence).queryByText('Renamed Shared Title'),
+    ).not.toBeInTheDocument()
+  })
+
   it('keeps manual record ids unique when records are created in the same millisecond', () => {
     const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(123)
 

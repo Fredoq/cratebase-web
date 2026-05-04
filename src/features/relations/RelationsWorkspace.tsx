@@ -195,6 +195,7 @@ export function RelationsWorkspace({
         {editingRelation && isManualSessionRecord(editingRelation.id) ? (
           <RelationEntryForm
             initialRelation={editingRelation}
+            key={editingRelation.id}
             linkOptions={linkOptions}
             relations={relations}
             onCancel={() => setEditingRelationId('')}

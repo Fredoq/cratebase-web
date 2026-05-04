@@ -190,6 +190,7 @@ export function TracksWorkspace({
           <TrackEntryForm
             artists={artists}
             initialTrack={editingTrack}
+            key={editingTrack.id}
             onCancel={() => setEditingTrackId('')}
             releases={releases}
             tracks={tracks}
@@ -291,31 +292,57 @@ function TrackEntryForm({
     const trackArtist =
       selectedArtist?.name ??
       textOrFallback(artist, selectedRelease?.artist ?? 'Unknown artist')
-    const releaseTitle =
-      selectedRelease?.title ?? textOrFallback(release, 'Unlinked release')
     const role = creditRole.trim()
     const note = versionNote.trim()
+    const existingRelease = initialTrack?.release
+    const existingFileMetadata = initialTrack?.fileMetadata
+    const releaseTitle =
+      selectedRelease?.title ??
+      textOrFallback(
+        release,
+        selectedReleaseId
+          ? (existingRelease?.title ?? 'Unlinked release')
+          : 'Unlinked release',
+      )
 
     onSubmit({
+      ...(initialTrack ?? {}),
       id: initialTrack?.id ?? createManualRecordId('track', trackTitle),
       title: trackTitle,
       artistId: selectedArtist?.id,
       artist: trackArtist,
       release: {
-        id: selectedRelease?.id,
+        id: selectedReleaseId
+          ? (selectedRelease?.id ?? existingRelease?.id)
+          : undefined,
         title: releaseTitle,
-        artist: selectedRelease?.artist ?? trackArtist,
-        year: selectedRelease?.year ?? 'Unknown year',
-        label: selectedRelease?.label ?? 'Unknown label',
+        artist: selectedReleaseId
+          ? (selectedRelease?.artist ?? existingRelease?.artist ?? trackArtist)
+          : trackArtist,
+        year: selectedReleaseId
+          ? (selectedRelease?.year ?? existingRelease?.year ?? 'Unknown year')
+          : 'Unknown year',
+        label: selectedReleaseId
+          ? (selectedRelease?.label ??
+            existingRelease?.label ??
+            'Unknown label')
+          : 'Unknown label',
       },
-      trackNumber: 'Unnumbered',
-      duration: textOrFallback(duration, 'Unknown duration'),
-      versionHint: textOrFallback(note, 'No version note recorded'),
+      trackNumber: initialTrack?.trackNumber ?? 'Unnumbered',
+      duration: textOrFallback(
+        duration,
+        initialTrack?.duration ?? 'Unknown duration',
+      ),
+      versionHint: textOrFallback(
+        note,
+        initialTrack?.versionHint ?? 'No version note recorded',
+      ),
       relationHint: textOrFallback(
         note,
-        'Manual track draft with incomplete metadata.',
+        initialTrack?.relationHint ??
+          'Manual track draft with incomplete metadata.',
       ),
-      tags: ['manual entry'],
+      tags: initialTrack?.tags ?? ['manual entry'],
       credits:
         role.length > 0
           ? [
@@ -325,7 +352,7 @@ function TrackEntryForm({
                 scope: 'Manual track credit hint.',
               },
             ]
-          : [],
+          : (initialTrack?.credits ?? []),
       relations:
         note.length > 0
           ? [
@@ -335,15 +362,18 @@ function TrackEntryForm({
                 detail: note,
               },
             ]
-          : [],
+          : (initialTrack?.relations ?? []),
       fileMetadata: {
-        format: textOrFallback(fileFormat, 'None recorded'),
-        path: 'No file linked',
-        bitrate: 'Not recorded',
-        sampleRate: 'Not recorded',
-        channels: 'Not recorded',
-        importedAt: 'Manual entry',
-        checksum: 'Not recorded',
+        format: textOrFallback(
+          fileFormat,
+          existingFileMetadata?.format ?? 'None recorded',
+        ),
+        path: existingFileMetadata?.path ?? 'No file linked',
+        bitrate: existingFileMetadata?.bitrate ?? 'Not recorded',
+        sampleRate: existingFileMetadata?.sampleRate ?? 'Not recorded',
+        channels: existingFileMetadata?.channels ?? 'Not recorded',
+        importedAt: existingFileMetadata?.importedAt ?? 'Manual entry',
+        checksum: existingFileMetadata?.checksum ?? 'Not recorded',
       },
     })
   }

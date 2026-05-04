@@ -941,6 +941,10 @@
     flex-direction: column;
   }
 
+  .detail-actions {
+    flex-direction: column;
+  }
+
   .manual-entry-grid {
     grid-template-columns: 1fr;
   }

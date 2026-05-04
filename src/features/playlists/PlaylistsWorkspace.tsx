@@ -161,6 +161,7 @@ export function PlaylistsWorkspace({
         {editingPlaylist && isManualSessionRecord(editingPlaylist.id) ? (
           <PlaylistEntryForm
             initialPlaylist={editingPlaylist}
+            key={editingPlaylist.id}
             onCancel={() => setEditingPlaylistId('')}
             onSubmit={handleUpdatePlaylist}
           />
@@ -230,11 +231,11 @@ function PlaylistEntryForm({
       name: playlistName,
       description: textOrFallback(description, 'Manual playlist draft.'),
       curator: textOrFallback(curator, 'Default collection'),
-      updatedAt: 'Manual entry',
-      yearRange: 'Not recorded',
+      updatedAt: initialPlaylist?.updatedAt ?? 'Manual entry',
+      yearRange: initialPlaylist?.yearRange ?? 'Not recorded',
       ruleHints,
-      tracks: [],
-      linkedReleases: [],
+      tracks: initialPlaylist?.tracks ?? [],
+      linkedReleases: initialPlaylist?.linkedReleases ?? [],
     }
 
     if (type === 'Manual') {
