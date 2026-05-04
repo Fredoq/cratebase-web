@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { ManualEntryPanel } from '../manualEntry/ManualEntryPanel'
 import {
   createManualRecordId,
+  isManualSessionRecord,
   textOrFallback,
 } from '../manualEntry/manualEntryUtils'
 import {
@@ -29,6 +30,7 @@ type TracksWorkspaceProps = {
   isManualEntryOpen?: boolean
   locationSearch?: string
   onAddTrack?: (track: TrackRecord) => void
+  onUpdateTrack?: (track: TrackRecord) => void
   onManualEntryClose?: () => void
   playlists?: PlaylistRecord[]
   releases?: ReleaseRecord[]
@@ -41,6 +43,7 @@ export function TracksWorkspace({
   isManualEntryOpen = false,
   locationSearch = window.location.search,
   onAddTrack,
+  onUpdateTrack,
   onManualEntryClose = () => {},
   playlists = [],
   releases = releaseRecords,
@@ -55,6 +58,7 @@ export function TracksWorkspace({
     releaseLink: '',
   })
   const [manualTracks, setManualTracks] = useState<TrackRecord[]>([])
+  const [editingTrackId, setEditingTrackId] = useState('')
   const tracks = useMemo(() => {
     return providedTracks ?? [...trackRecords, ...manualTracks]
   }, [manualTracks, providedTracks])
@@ -99,6 +103,24 @@ export function TracksWorkspace({
     selectTrack(track.id)
     onManualEntryClose()
   }
+
+  function handleUpdateTrack(track: TrackRecord) {
+    if (onUpdateTrack) {
+      onUpdateTrack(track)
+    } else {
+      setManualTracks((currentTracks) =>
+        currentTracks.map((currentTrack) =>
+          currentTrack.id === track.id ? track : currentTrack,
+        ),
+      )
+    }
+
+    setQuery('')
+    selectTrack(track.id)
+    setEditingTrackId('')
+  }
+
+  const editingTrack = tracks.find((track) => track.id === editingTrackId)
 
   return (
     <section className="catalog-layout" aria-label="Tracks workspace">
@@ -164,6 +186,16 @@ export function TracksWorkspace({
             onSubmit={handleAddTrack}
           />
         ) : null}
+        {editingTrack && isManualSessionRecord(editingTrack.id) ? (
+          <TrackEntryForm
+            artists={artists}
+            initialTrack={editingTrack}
+            onCancel={() => setEditingTrackId('')}
+            releases={releases}
+            tracks={tracks}
+            onSubmit={handleUpdateTrack}
+          />
+        ) : null}
         <TrackTable
           selectedTrackId={selectedTrack?.id ?? ''}
           tracks={visibleTracks}
@@ -173,6 +205,11 @@ export function TracksWorkspace({
 
       {selectedTrack ? (
         <TrackDetail
+          onEdit={
+            isManualSessionRecord(selectedTrack.id)
+              ? () => setEditingTrackId(selectedTrack.id)
+              : undefined
+          }
           playlists={playlists}
           relations={relations}
           releases={releases}
@@ -187,6 +224,7 @@ export function TracksWorkspace({
 
 type TrackEntryFormProps = {
   artists: ArtistRecord[]
+  initialTrack?: TrackRecord
   onCancel: () => void
   releases: ReleaseRecord[]
   tracks: TrackRecord[]
@@ -195,20 +233,35 @@ type TrackEntryFormProps = {
 
 function TrackEntryForm({
   artists,
+  initialTrack,
   onCancel,
   releases,
   tracks,
   onSubmit,
 }: TrackEntryFormProps) {
-  const [title, setTitle] = useState('')
-  const [selectedArtistId, setSelectedArtistId] = useState('')
-  const [artist, setArtist] = useState('')
-  const [selectedReleaseId, setSelectedReleaseId] = useState('')
-  const [release, setRelease] = useState('')
-  const [duration, setDuration] = useState('')
-  const [fileFormat, setFileFormat] = useState('')
-  const [creditRole, setCreditRole] = useState('')
-  const [versionNote, setVersionNote] = useState('')
+  const [title, setTitle] = useState(initialTrack?.title ?? '')
+  const [selectedArtistId, setSelectedArtistId] = useState(
+    initialTrack?.artistId ?? '',
+  )
+  const [artist, setArtist] = useState(
+    initialTrack?.artistId ? '' : (initialTrack?.artist ?? ''),
+  )
+  const [selectedReleaseId, setSelectedReleaseId] = useState(
+    initialTrack?.release.id ?? '',
+  )
+  const [release, setRelease] = useState(
+    initialTrack?.release.id ? '' : (initialTrack?.release.title ?? ''),
+  )
+  const [duration, setDuration] = useState(initialTrack?.duration ?? '')
+  const [fileFormat, setFileFormat] = useState(
+    initialTrack?.fileMetadata.format ?? '',
+  )
+  const [creditRole, setCreditRole] = useState(
+    initialTrack?.credits[0]?.role ?? '',
+  )
+  const [versionNote, setVersionNote] = useState(
+    initialTrack?.versionHint ?? '',
+  )
   const isValid = title.trim().length > 0
   const selectedArtist = artists.find(
     (record) => record.id === selectedArtistId,
@@ -226,10 +279,12 @@ function TrackEntryForm({
   ).toLowerCase()
   const duplicateTrack = tracks.find(
     (track) =>
+      track.id !== initialTrack?.id &&
       track.title.toLowerCase() === title.trim().toLowerCase() &&
       track.artist.toLowerCase() === candidateArtist &&
       track.release.title.toLowerCase() === candidateRelease,
   )
+  const formTitle = initialTrack ? 'Edit track' : 'Add track'
 
   function handleSubmit() {
     const trackTitle = title.trim()
@@ -242,7 +297,7 @@ function TrackEntryForm({
     const note = versionNote.trim()
 
     onSubmit({
-      id: createManualRecordId('track', trackTitle),
+      id: initialTrack?.id ?? createManualRecordId('track', trackTitle),
       title: trackTitle,
       artistId: selectedArtist?.id,
       artist: trackArtist,
@@ -295,11 +350,12 @@ function TrackEntryForm({
 
   return (
     <ManualEntryPanel
-      title="Add track"
+      title={formTitle}
       requiredMessage="Title is required."
       isValid={isValid}
       onCancel={onCancel}
       onSubmit={handleSubmit}
+      submitLabel={initialTrack ? 'Save record' : 'Add record'}
     >
       <label>
         <span>Title</span>
@@ -563,6 +619,7 @@ function TrackTable({
 }
 
 type TrackDetailProps = {
+  onEdit?: () => void
   playlists: PlaylistRecord[]
   relations: RelationRecord[]
   releases: ReleaseRecord[]
@@ -570,6 +627,7 @@ type TrackDetailProps = {
 }
 
 function TrackDetail({
+  onEdit,
   playlists,
   relations,
   releases,
@@ -596,9 +654,27 @@ function TrackDetail({
   return (
     <aside className="panel detail-panel" aria-labelledby="track-detail-title">
       <div className="detail-header">
-        <span className="entity-type">Track</span>
+        <div className="detail-title-row">
+          <span className="entity-type">Track</span>
+          {onEdit ? (
+            <span className="badge badge-tag">
+              Session-only editable record
+            </span>
+          ) : null}
+        </div>
         <h2 id="track-detail-title">{track.title}</h2>
         <p>{track.artist}</p>
+        {onEdit ? (
+          <div className="detail-actions">
+            <button
+              className="button button-secondary"
+              type="button"
+              onClick={onEdit}
+            >
+              Edit session record
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <p className="detail-summary">{track.relationHint}</p>
