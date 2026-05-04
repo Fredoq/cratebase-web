@@ -6,7 +6,10 @@ import {
   splitCommaList,
   textOrFallback,
 } from '../manualEntry/manualEntryUtils'
+import { uniqueValues } from '../catalog/catalogGraph'
 import { useCatalogSelection } from '../catalog/useCatalogSelection'
+import type { ArtistRecord } from '../artists/artistsData'
+import type { OwnedItemRecord } from '../ownedItems/ownedItemsData'
 import { releaseRecords, type ReleaseRecord } from '../releases/releasesData'
 import { trackRecords, type TrackRecord } from '../tracks/tracksData'
 import {
@@ -18,31 +21,50 @@ import {
 } from './playlistsData'
 
 type PlaylistsWorkspaceProps = {
+  artists?: ArtistRecord[]
   isManualEntryOpen?: boolean
   locationSearch?: string
+  onAddPlaylist?: (playlist: PlaylistRecord) => void
   onManualEntryClose?: () => void
+  ownedItems?: OwnedItemRecord[]
+  playlists?: PlaylistRecord[]
   releases?: ReleaseRecord[]
   tracks?: TrackRecord[]
 }
 
 export function PlaylistsWorkspace({
+  artists = [],
   isManualEntryOpen = false,
   locationSearch = window.location.search,
+  onAddPlaylist,
   onManualEntryClose = () => {},
+  ownedItems = [],
+  playlists: providedPlaylists,
   releases = releaseRecords,
   tracks = trackRecords,
 }: PlaylistsWorkspaceProps) {
   const [query, setQuery] = useState('')
+  const [filters, setFilters] = useState({
+    type: '',
+    rule: '',
+    referenceLink: '',
+  })
   const [manualPlaylists, setManualPlaylists] = useState<PlaylistRecord[]>([])
-  const playlists = useMemo(
-    () => [...playlistRecords, ...manualPlaylists],
-    [manualPlaylists],
-  )
+  const playlists = useMemo(() => {
+    return providedPlaylists ?? [...playlistRecords, ...manualPlaylists]
+  }, [manualPlaylists, providedPlaylists])
 
-  const visiblePlaylists = useMemo(
-    () => filterPlaylists(query, playlists),
-    [playlists, query],
-  )
+  const visiblePlaylists = useMemo(() => {
+    return filterPlaylists(query, playlists).filter(
+      (playlist) =>
+        (!filters.type || playlist.type === filters.type) &&
+        (!filters.rule || playlist.ruleHints.includes(filters.rule)) &&
+        (!filters.referenceLink ||
+          (filters.referenceLink === 'Linked'
+            ? hasLinkedPlaylistReferences(playlist, releases, tracks)
+            : !hasLinkedPlaylistReferences(playlist, releases, tracks))),
+    )
+  }, [filters, playlists, query, releases, tracks])
   const { selectedRecord: selectedPlaylist, selectRecord: selectPlaylist } =
     useCatalogSelection({
       locationSearch,
@@ -57,7 +79,12 @@ export function PlaylistsWorkspace({
   }
 
   function handleAddPlaylist(playlist: PlaylistRecord) {
-    setManualPlaylists((currentPlaylists) => [...currentPlaylists, playlist])
+    if (onAddPlaylist) {
+      onAddPlaylist(playlist)
+    } else {
+      setManualPlaylists((currentPlaylists) => [...currentPlaylists, playlist])
+    }
+
     setQuery('')
     selectPlaylist(playlist.id)
     onManualEntryClose()
@@ -73,6 +100,28 @@ export function PlaylistsWorkspace({
           onQueryChange={handleQueryChange}
         />
         <div className="filter-bar">
+          <FilterSelect
+            label="Playlist type"
+            value={filters.type}
+            values={['Manual', 'Smart']}
+            onChange={(type) => setFilters((current) => ({ ...current, type }))}
+          />
+          <FilterSelect
+            label="Tag or rule type"
+            value={filters.rule}
+            values={uniqueValues(
+              playlists.flatMap((playlist) => playlist.ruleHints),
+            )}
+            onChange={(rule) => setFilters((current) => ({ ...current, rule }))}
+          />
+          <FilterSelect
+            label="Reference links"
+            value={filters.referenceLink}
+            values={['Linked', 'Unlinked']}
+            onChange={(referenceLink) =>
+              setFilters((current) => ({ ...current, referenceLink }))
+            }
+          />
           <span className="result-count">{visiblePlaylists.length} shown</span>
         </div>
         {isManualEntryOpen ? (
@@ -90,6 +139,8 @@ export function PlaylistsWorkspace({
 
       {selectedPlaylist ? (
         <PlaylistDetail
+          artists={artists}
+          ownedItems={ownedItems}
           playlist={selectedPlaylist}
           releases={releases}
           tracks={tracks}
@@ -229,6 +280,21 @@ function filterPlaylists(query: string, playlists: PlaylistRecord[]) {
   )
 }
 
+function hasLinkedPlaylistReferences(
+  playlist: PlaylistRecord,
+  releases: ReleaseRecord[],
+  tracks: TrackRecord[],
+) {
+  return (
+    playlist.tracks.some((playlistTrack) =>
+      tracks.some((track) => track.id === playlistTrack.id),
+    ) ||
+    playlist.linkedReleases.some((linkedRelease) =>
+      releases.some((release) => release.id === linkedRelease.releaseId),
+    )
+  )
+}
+
 function playlistSearchText(playlist: PlaylistRecord) {
   const selectionText =
     playlist.type === 'Manual'
@@ -286,6 +352,29 @@ type SearchFieldProps = {
   placeholder: string
   query: string
   onQueryChange: (query: string) => void
+}
+
+type FilterSelectProps = {
+  label: string
+  value: string
+  values: string[]
+  onChange: (value: string) => void
+}
+
+function FilterSelect({ label, value, values, onChange }: FilterSelectProps) {
+  return (
+    <label className="filter-control">
+      <span>{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        <option value="">All</option>
+        {values.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
 }
 
 function SearchField({
@@ -396,12 +485,29 @@ function PlaylistsTable({
 }
 
 type PlaylistDetailProps = {
+  artists: ArtistRecord[]
+  ownedItems: OwnedItemRecord[]
   playlist: PlaylistRecord
   releases: ReleaseRecord[]
   tracks: TrackRecord[]
 }
 
-function PlaylistDetail({ playlist, releases, tracks }: PlaylistDetailProps) {
+function PlaylistDetail({
+  artists,
+  ownedItems,
+  playlist,
+  releases,
+  tracks,
+}: PlaylistDetailProps) {
+  const relatedArtists = artists.filter((artist) =>
+    playlistSearchText(playlist).includes(artist.name.toLowerCase()),
+  )
+  const relatedOwnedItems = ownedItems.filter((item) =>
+    playlist.linkedReleases.some(
+      (release) => release.releaseId === item.releaseId,
+    ),
+  )
+
   return (
     <aside className="panel detail-panel" aria-labelledby="playlist-title">
       <div className="detail-header">
@@ -494,6 +600,44 @@ function PlaylistDetail({ playlist, releases, tracks }: PlaylistDetailProps) {
               release={release}
             />
           ))}
+        </div>
+      </section>
+
+      <section className="detail-section" aria-labelledby="playlist-graph">
+        <h3 id="playlist-graph">Related catalog context</h3>
+        <div className="relation-list">
+          {relatedArtists.length > 0 || relatedOwnedItems.length > 0 ? (
+            <>
+              {relatedArtists.map((artist) => (
+                <article key={artist.id}>
+                  <span className="badge badge-credit">Artist</span>
+                  <a
+                    className="detail-link"
+                    href={`/artists?artist=${encodeURIComponent(artist.id)}`}
+                  >
+                    {artist.name}
+                  </a>
+                  <p>{artist.creditHint}</p>
+                </article>
+              ))}
+              {relatedOwnedItems.map((item) => (
+                <article key={item.id}>
+                  <span className="badge badge-media">{item.medium}</span>
+                  <a
+                    className="detail-link"
+                    href={`/owned-items?ownedItem=${encodeURIComponent(item.id)}`}
+                  >
+                    {item.title}
+                  </a>
+                  <p>
+                    {item.status} · {item.storage}
+                  </p>
+                </article>
+              ))}
+            </>
+          ) : (
+            <p>No related artists or owned items found yet.</p>
+          )}
         </div>
       </section>
     </aside>
