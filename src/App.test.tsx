@@ -103,7 +103,9 @@ describe('App', () => {
       await screen.findByRole('form', { name: 'Sign in' }),
     ).toBeInTheDocument()
     expect(fetchMock).toHaveBeenLastCalledWith('/api/auth/logout', {
+      body: JSON.stringify({}),
       credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
       method: 'POST',
     })
   })

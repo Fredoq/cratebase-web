@@ -87,7 +87,9 @@ export async function signOut(): Promise<
 > {
   try {
     const response = await fetch('/api/auth/logout', {
+      body: JSON.stringify({}),
       credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
       method: 'POST',
     })
 
