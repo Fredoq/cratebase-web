@@ -42,6 +42,14 @@ function mockFetch(...responses: FetchMockResponse[]) {
   return fetchMock
 }
 
+function emptyCatalogListResponse() {
+  return jsonResponse({ items: [], limit: 100, offset: 0, total: 0 })
+}
+
+function emptyCatalogLoadResponses() {
+  return Array.from({ length: 8 }, emptyCatalogListResponse)
+}
+
 describe('App', () => {
   beforeEach(() => {
     window.history.pushState({}, '', '/catalog')
@@ -281,6 +289,57 @@ describe('App', () => {
       'Server unavailable. Check connection and retry.',
     )
     expect(within(form).getByRole('button', { name: 'Sign in' })).toBeEnabled()
+  })
+
+  it('shows retryable catalog API error when initial catalog loading fails', async () => {
+    clearCatalogForTests()
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn<Window['fetch']>()
+        .mockImplementation(() =>
+          Promise.resolve(
+            jsonResponse(
+              { code: 'catalog.server_error', message: 'Catalog unavailable' },
+              500,
+            ),
+          ),
+        ),
+    )
+
+    render(<App />)
+
+    expect(
+      await screen.findByRole('heading', { name: 'Catalog API unavailable' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Catalog API request failed. Try again.',
+    )
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeEnabled()
+  })
+
+  it('returns to sign in when a catalog mutation expires the session', async () => {
+    clearCatalogForTests()
+    window.history.pushState({}, '', '/artists')
+    mockFetch(
+      ...emptyCatalogLoadResponses(),
+      jsonResponse(
+        { code: 'auth.unauthenticated', message: 'Session expired' },
+        401,
+      ),
+      new Response(null, { status: 204 }),
+    )
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Add artist' }))
+    const form = screen.getByRole('form', { name: 'Add artist' })
+    await user.type(within(form).getByLabelText('Name'), 'Expired Session')
+    await user.click(within(form).getByRole('button', { name: 'Add record' }))
+
+    expect(
+      await screen.findByRole('form', { name: 'Sign in' }),
+    ).toBeInTheDocument()
   })
 
   it('maps bootstrap unavailable to the bootstrap form error', async () => {

@@ -145,7 +145,7 @@ function SettingsApiNotice() {
         </div>
         <div className="settings-control">
           <span>Collection routing</span>
-          <strong>Resolved from session</strong>
+          <strong>Resolved from authenticated local account</strong>
         </div>
         <div className="settings-control">
           <span>Dangerous actions</span>

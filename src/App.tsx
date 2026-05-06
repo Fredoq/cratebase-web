@@ -156,9 +156,10 @@ function AuthenticatedApp({
 
     if (initialCatalogState) {
       try {
-        void mutation()
+        const mutationResult = mutation()
         setCatalog(getInitialCatalogStateForTests() ?? emptyCatalogState)
         setActionStatus(successMessage)
+        await mutationResult
       } catch (error) {
         setCatalogStatus('error')
         setCatalogError(catalogErrorMessage(error))
@@ -358,7 +359,7 @@ function AuthenticatedApp({
               (item) => item.id === relationId,
             )
             if (!relation) {
-              setCatalogError('Relation could not be found for deletion.')
+              setActionStatus('Relation could not be found for deletion.')
               return
             }
 

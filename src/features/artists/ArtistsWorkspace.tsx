@@ -320,6 +320,7 @@ function ArtistEntryForm({
         <span>Type</span>
         <select
           value={type}
+          disabled={Boolean(initialArtist)}
           onChange={(event) => setType(event.target.value as ArtistType)}
         >
           <option>Person</option>

@@ -8,7 +8,7 @@ import type { ReleaseRecord, ReleaseType } from '../releases/releasesData'
 import type { RelationRecord } from '../relations/relationsData'
 import type { TrackCredit, TrackRecord } from '../tracks/tracksData'
 
-const pageQuery = 'limit=100&offset=0'
+const pageSize = 100
 
 export type CatalogState = {
   artists: ArtistRecord[]
@@ -194,14 +194,14 @@ export async function loadCatalog(): Promise<CatalogState> {
     artistRelationsResponse,
     trackRelationsResponse,
   ] = await Promise.all([
-    getList<ArtistDto>(`/api/artists?${pageQuery}`),
-    getList<LabelDto>(`/api/labels?${pageQuery}`),
-    getList<ReleaseDto>(`/api/releases?${pageQuery}`),
-    getList<TrackDto>(`/api/tracks?${pageQuery}`),
-    getList<OwnedItemDto>(`/api/owned-items?${pageQuery}`),
-    getList<CreditDto>(`/api/credits?${pageQuery}`),
-    getList<ArtistRelationDto>(`/api/artist-relations?${pageQuery}`),
-    getList<TrackRelationDto>(`/api/track-relations?${pageQuery}`),
+    getAllPages<ArtistDto>('/api/artists'),
+    getAllPages<LabelDto>('/api/labels'),
+    getAllPages<ReleaseDto>('/api/releases'),
+    getAllPages<TrackDto>('/api/tracks'),
+    getAllPages<OwnedItemDto>('/api/owned-items'),
+    getAllPages<CreditDto>('/api/credits'),
+    getAllPages<ArtistRelationDto>('/api/artist-relations'),
+    getAllPages<TrackRelationDto>('/api/track-relations'),
   ])
 
   const labelsById = new Map(
@@ -262,6 +262,39 @@ export async function loadCatalog(): Promise<CatalogState> {
   }
 }
 
+async function getAllPages<T>(
+  path: string,
+  params: Record<string, string> = {},
+): Promise<ListResponse<T>> {
+  let offset = 0
+  let total: number | undefined
+  const items: T[] = []
+
+  while (true) {
+    const pageParams = new URLSearchParams(params)
+    pageParams.set('limit', String(pageSize))
+    pageParams.set('offset', String(offset))
+
+    const page = await getList<T>(`${path}?${pageParams.toString()}`)
+
+    items.push(...page.items)
+    total = page.total
+
+    if (page.items.length === 0 || items.length >= page.total) {
+      break
+    }
+
+    offset += page.items.length
+  }
+
+  return {
+    items,
+    limit: pageSize,
+    offset: 0,
+    total: total ?? items.length,
+  }
+}
+
 async function getList<T>(path: string): Promise<ListResponse<T>> {
   const response = await fetch(path, {
     credentials: 'include',
@@ -269,6 +302,10 @@ async function getList<T>(path: string): Promise<ListResponse<T>> {
   })
 
   if (!response.ok) {
+    if (response.status === 404) {
+      return { items: [], limit: 0, offset: 0, total: 0 }
+    }
+
     throw await CatalogApiError.fromResponse(response)
   }
 
@@ -395,26 +432,51 @@ export async function createRelease(
     genres: release.genres,
     tags: release.tags,
   })
+  const createdCreditIds: string[] = []
+  const createdOwnedItemIds: string[] = []
+  const createdTrackIds: string[] = []
 
-  if (release.artistId) {
-    await createCredit(release.artistId, 'release', releaseDto.id, 'mainArtist')
-  }
+  try {
+    if (release.artistId) {
+      const credit = await createCredit(
+        release.artistId,
+        'release',
+        releaseDto.id,
+        'mainArtist',
+      )
+      createdCreditIds.push(credit.id)
+    }
 
-  for (const copy of release.ownedCopies) {
-    await createOwnedItemForRelease(
-      releaseDto.id,
-      copy.medium,
-      copy.status,
-      copy.condition,
-      copy.storage,
-    )
-  }
+    for (const copy of release.ownedCopies) {
+      const ownedItem = await createOwnedItemForRelease(
+        releaseDto.id,
+        copy.medium,
+        copy.status,
+        copy.condition,
+        copy.storage,
+      )
+      createdOwnedItemIds.push(ownedItem.id)
+    }
 
-  for (const track of tracks) {
-    await createTrack({
-      ...track,
-      release: { ...track.release, id: releaseDto.id },
-    })
+    for (const track of tracks) {
+      const trackDto = await createTrackRecord({
+        ...track,
+        release: { ...track.release, id: releaseDto.id },
+      })
+      createdTrackIds.push(trackDto.id)
+    }
+  } catch (error) {
+    for (const trackId of [...createdTrackIds].reverse()) {
+      await deleteTrackBestEffort(trackId)
+    }
+    for (const ownedItemId of [...createdOwnedItemIds].reverse()) {
+      await deleteOwnedItemBestEffort(ownedItemId)
+    }
+    for (const creditId of [...createdCreditIds].reverse()) {
+      await deleteCreditBestEffort(creditId)
+    }
+    await deleteReleaseBestEffort(releaseDto.id)
+    throw error
   }
 }
 
@@ -479,6 +541,8 @@ export async function updateRelease(release: ReleaseRecord) {
     genres: release.genres,
     tags: release.tags,
   })
+
+  await syncMainArtistCredit('release', release.id, release.artistId)
 }
 
 export async function deleteRelease(releaseId: string) {
@@ -515,6 +579,10 @@ export async function createTrack(track: TrackRecord) {
     return
   }
 
+  await createTrackRecord(track)
+}
+
+async function createTrackRecord(track: TrackRecord) {
   const trackDto = await sendJson<TrackDto>('/api/tracks', 'POST', {
     title: track.title,
     durationSeconds: parseDuration(track.duration),
@@ -522,9 +590,16 @@ export async function createTrack(track: TrackRecord) {
     tags: track.tags,
   })
 
-  if (track.artistId) {
-    await createCredit(track.artistId, 'track', trackDto.id, 'mainArtist')
+  try {
+    if (track.artistId) {
+      await createCredit(track.artistId, 'track', trackDto.id, 'mainArtist')
+    }
+  } catch (error) {
+    await deleteTrackBestEffort(trackDto.id)
+    throw error
   }
+
+  return trackDto
 }
 
 export async function updateTrack(track: TrackRecord) {
@@ -563,6 +638,8 @@ export async function updateTrack(track: TrackRecord) {
     genres: [],
     tags: track.tags,
   })
+
+  await syncMainArtistCredit('track', track.id, track.artistId)
 }
 
 export async function deleteTrack(trackId: string) {
@@ -783,12 +860,79 @@ async function createCredit(
   targetId: string,
   role: string,
 ) {
-  await sendJson('/api/credits', 'POST', {
+  return sendJson<CreditDto>('/api/credits', 'POST', {
     contributorArtistId,
     targetType,
     targetId,
     role,
   })
+}
+
+async function syncMainArtistCredit(
+  targetType: 'release' | 'track',
+  targetId: string,
+  artistId: string | undefined,
+) {
+  if (!artistId) {
+    return
+  }
+
+  const credits = await getAllPages<CreditDto>('/api/credits', {
+    role: 'mainArtist',
+    targetId,
+    targetType,
+  })
+  const existingCredit = credits.items[0]
+  const body = {
+    contributorArtistId: artistId,
+    targetId,
+    targetType,
+    role: 'mainArtist',
+  }
+
+  if (!existingCredit) {
+    await sendJson('/api/credits', 'POST', body)
+    return
+  }
+
+  if (existingCredit.contributorArtistId !== artistId) {
+    await sendJson(`/api/credits/${existingCredit.id}`, 'PUT', body)
+  }
+}
+
+async function deleteReleaseBestEffort(releaseId: string) {
+  try {
+    await sendDelete(`/api/releases/${releaseId}`, `release:${releaseId}`)
+  } catch {
+    // Preserve the original downstream failure for the UI.
+  }
+}
+
+async function deleteTrackBestEffort(trackId: string) {
+  try {
+    await sendDelete(`/api/tracks/${trackId}`, `track:${trackId}`)
+  } catch {
+    // Preserve the original downstream failure for the UI.
+  }
+}
+
+async function deleteOwnedItemBestEffort(ownedItemId: string) {
+  try {
+    await sendDelete(
+      `/api/owned-items/${ownedItemId}`,
+      `owned-item:${ownedItemId}`,
+    )
+  } catch {
+    // Preserve the original downstream failure for the UI.
+  }
+}
+
+async function deleteCreditBestEffort(creditId: string) {
+  try {
+    await sendDelete(`/api/credits/${creditId}`, `credit:${creditId}`)
+  } catch {
+    // Preserve the original downstream failure for the UI.
+  }
 }
 
 async function createOwnedItemForRelease(
@@ -798,7 +942,7 @@ async function createOwnedItemForRelease(
   condition: string,
   storageLocation: string,
 ) {
-  await sendJson('/api/owned-items', 'POST', {
+  return sendJson<OwnedItemDto>('/api/owned-items', 'POST', {
     targetType: 'release',
     targetId: releaseId,
     status: toOwnershipStatusCode(status),

@@ -176,4 +176,76 @@ describe('catalog API adapter', () => {
 
     await expect(loadCatalog()).rejects.toThrow(/collection ids/i)
   })
+
+  it('continues loading paged catalog endpoints until totals are reached', async () => {
+    const fetchMock = vi.fn<Window['fetch']>().mockImplementation((input) => {
+      const requestUrl =
+        typeof input === 'string'
+          ? input
+          : input instanceof URL
+            ? input.href
+            : input.url
+      const url = new URL(requestUrl, 'http://localhost')
+      const offset = Number(url.searchParams.get('offset') ?? 0)
+
+      if (url.pathname === '/api/artists') {
+        return Promise.resolve(
+          jsonResponse({
+            items: [
+              {
+                id: `00000000-0000-7000-8000-00000000000${offset + 1}`,
+                type: 'person',
+                name: offset === 0 ? 'First Page Artist' : 'Second Page Artist',
+              },
+            ],
+            limit: 100,
+            offset,
+            total: 2,
+          }),
+        )
+      }
+
+      return Promise.resolve(
+        jsonResponse({ items: [], limit: 100, offset, total: 0 }),
+      )
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const catalog = await loadCatalog()
+
+    expect(catalog.artists.map((artist) => artist.name)).toEqual([
+      'First Page Artist',
+      'Second Page Artist',
+    ])
+    expect(fetchMock).toHaveBeenCalledWith('/api/artists?limit=100&offset=0', {
+      credentials: 'include',
+      method: 'GET',
+    })
+    expect(fetchMock).toHaveBeenCalledWith('/api/artists?limit=100&offset=1', {
+      credentials: 'include',
+      method: 'GET',
+    })
+  })
+
+  it('treats 404 catalog lists as empty collection data', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn<Window['fetch']>()
+        .mockImplementation(() =>
+          Promise.resolve(jsonResponse({ code: 'catalog.not_found' }, 404)),
+        ),
+    )
+
+    const catalog = await loadCatalog()
+
+    expect(catalog).toMatchObject({
+      artists: [],
+      releases: [],
+      tracks: [],
+      ownedItems: [],
+      relations: [],
+      playlists: [],
+    })
+  })
 })
