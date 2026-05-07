@@ -577,7 +577,7 @@ function ArtistDetail({
             </button>
             {onDelete ? (
               <DeleteSessionRecordButton
-                confirmationMessage="Delete this artist? This cannot be undone."
+                confirmationMessage="Delete this artist and remove their credits and relations?"
                 onDelete={onDelete}
               />
             ) : null}

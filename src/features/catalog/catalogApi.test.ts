@@ -152,6 +152,101 @@ describe('catalog API adapter', () => {
     })
   })
 
+  it('keeps manual digital owned-copy placeholders from displaying an inferred file format', async () => {
+    const fetchMock = vi.fn<Window['fetch']>()
+    fetchMock
+      .mockResolvedValueOnce(
+        jsonResponse({
+          items: [
+            {
+              id: '00000000-0000-7000-8000-000000000001',
+              type: 'person',
+              name: 'Digital Artist',
+            },
+          ],
+          limit: 100,
+          offset: 0,
+          total: 1,
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ items: [], limit: 100, offset: 0, total: 0 }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          items: [
+            {
+              id: '00000000-0000-7000-8000-000000000003',
+              title: 'Digital Shell',
+              type: 'album',
+              labelId: null,
+              year: 2026,
+              genres: [],
+              tags: [],
+              artistCredits: [
+                {
+                  artistId: '00000000-0000-7000-8000-000000000001',
+                  artistName: 'Digital Artist',
+                  role: 'mainArtist',
+                },
+              ],
+            },
+          ],
+          limit: 100,
+          offset: 0,
+          total: 1,
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ items: [], limit: 100, offset: 0, total: 0 }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          items: [
+            {
+              id: '00000000-0000-7000-8000-000000000005',
+              targetType: 'release',
+              targetId: '00000000-0000-7000-8000-000000000003',
+              status: 'owned',
+              medium: {
+                type: 'digital',
+                description: 'FLAC',
+                path: '/cratebase/manual-entry-placeholder',
+                format: 'flac',
+                discCount: null,
+              },
+              condition: null,
+              storageLocation: null,
+            },
+          ],
+          limit: 100,
+          offset: 0,
+          total: 1,
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ items: [], limit: 100, offset: 0, total: 0 }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ items: [], limit: 100, offset: 0, total: 0 }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ items: [], limit: 100, offset: 0, total: 0 }),
+      )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const catalog = await loadCatalog()
+
+    expect(catalog.releases[0].ownedCopies[0]).toMatchObject({
+      medium: 'Digital',
+    })
+    expect(catalog.ownedItems[0]).toMatchObject({
+      digitalState: 'Digital copy recorded',
+      fileFormat: 'None recorded',
+      medium: 'Digital',
+    })
+  })
+
   it('rejects normal catalog responses that expose collection ids', async () => {
     vi.stubGlobal(
       'fetch',

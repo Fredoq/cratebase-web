@@ -9,14 +9,31 @@ export type OwnedCopy = {
   note: string
 }
 
+export type ReleaseArtistCredit = {
+  artistId?: string
+  artist: string
+  role: string
+}
+
+export type ReleaseLabel = {
+  labelId?: string
+  name: string
+  catalogNumber?: string
+  hasNoCatalogNumber: boolean
+}
+
 export type ReleaseRecord = {
   id: string
   title: string
   artistId?: string
   artist: string
+  artistCredits?: ReleaseArtistCredit[]
   type: ReleaseType
   year: string
   label: string
+  labels?: ReleaseLabel[]
+  isVariousArtists?: boolean
+  notOnLabel?: boolean
   genres: string[]
   tags: string[]
   releaseNotes: string

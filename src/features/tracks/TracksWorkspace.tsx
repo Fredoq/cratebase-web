@@ -11,6 +11,7 @@ import {
   relationTouchesLink,
   uniqueValues,
 } from '../catalog/catalogGraph'
+import { hasInvalidDurationText } from '../catalog/durationFormat'
 import { FilterSelect } from '../catalog/FilterSelect'
 import { useCatalogSelection } from '../catalog/useCatalogSelection'
 import type { ArtistRecord } from '../artists/artistsData'
@@ -264,7 +265,11 @@ function TrackEntryForm({
   const [release, setRelease] = useState(
     initialTrack?.release.id ? '' : (initialTrack?.release.title ?? ''),
   )
-  const [duration, setDuration] = useState(initialTrack?.duration ?? '')
+  const [duration, setDuration] = useState(
+    initialTrack?.duration === 'Unknown duration'
+      ? ''
+      : (initialTrack?.duration ?? ''),
+  )
   const [fileFormat, setFileFormat] = useState(
     initialTrack?.fileMetadata.format ?? '',
   )
@@ -274,7 +279,8 @@ function TrackEntryForm({
   const [versionNote, setVersionNote] = useState(
     initialTrack?.versionHint ?? '',
   )
-  const isValid = title.trim().length > 0
+  const hasInvalidDuration = hasInvalidDurationText(duration)
+  const isValid = title.trim().length > 0 && !hasInvalidDuration
   const selectedArtist = artists.find(
     (record) => record.id === selectedArtistId,
   )
@@ -392,7 +398,11 @@ function TrackEntryForm({
   return (
     <ManualEntryPanel
       title={formTitle}
-      requiredMessage="Title is required."
+      requiredMessage={
+        title.trim().length === 0
+          ? 'Title is required.'
+          : 'Duration must use MM:SS or H:MM:SS.'
+      }
       isValid={isValid}
       onCancel={onCancel}
       onSubmit={handleSubmit}
@@ -476,10 +486,16 @@ function TrackEntryForm({
       <label>
         <span>Duration</span>
         <input
+          aria-describedby="track-duration-help"
+          aria-invalid={hasInvalidDuration}
+          inputMode="numeric"
           value={duration}
           onChange={(event) => setDuration(event.target.value)}
         />
       </label>
+      <p className="manual-entry-help" id="track-duration-help">
+        Use MM:SS or H:MM:SS.
+      </p>
       <label>
         <span>File format</span>
         <input
@@ -716,7 +732,7 @@ function TrackDetail({
             </button>
             {onDelete ? (
               <DeleteSessionRecordButton
-                confirmationMessage="Delete this track? This cannot be undone."
+                confirmationMessage="Delete this track and remove its release links and credits?"
                 onDelete={onDelete}
               />
             ) : null}

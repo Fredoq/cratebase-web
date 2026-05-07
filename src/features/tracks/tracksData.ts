@@ -1,4 +1,5 @@
 export type TrackCredit = {
+  artistId?: string
   role: string
   artist: string
   scope: string
