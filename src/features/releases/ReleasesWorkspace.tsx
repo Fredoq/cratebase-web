@@ -253,6 +253,8 @@ type DraftTrackRow = {
   durationParts: DurationParts
   inheritReleaseArtistCredits: boolean
   artistCredits: EditableArtistCredit[]
+  draftArtist: string
+  draftArtistId: string
   versionNote: string
 }
 
@@ -320,18 +322,22 @@ function ReleaseEntryForm({
         }))
       }
 
-      return [
-        {
-          id: createManualRecordId('release-artist-credit', '1'),
-          artistId: initialRelease?.artistId ?? '',
-          artist: initialRelease?.artistId
-            ? ''
-            : (initialRelease?.artist ?? ''),
-          role: 'Main artist',
-        },
-      ]
+      if (initialRelease) {
+        return [
+          {
+            id: createManualRecordId('release-artist-credit', '1'),
+            artistId: initialRelease.artistId ?? '',
+            artist: initialRelease.artistId ? '' : initialRelease.artist,
+            role: 'Main artist',
+          },
+        ]
+      }
+
+      return []
     },
   )
+  const [draftArtist, setDraftArtist] = useState('')
+  const [draftArtistId, setDraftArtistId] = useState('')
   const [year, setYear] = useState(initialRelease?.year ?? '')
   const [notOnLabel, setNotOnLabel] = useState(
     Boolean(initialRelease?.notOnLabel),
@@ -347,18 +353,22 @@ function ReleaseEntryForm({
       }))
     }
 
-    return [
-      {
-        id: createManualRecordId('release-label', '1'),
-        label:
-          initialRelease?.label === 'Unknown label'
-            ? ''
-            : (initialRelease?.label ?? ''),
-        catalogNumber: '',
-        hasNoCatalogNumber: false,
-      },
-    ]
+    if (initialRelease && initialRelease.label !== 'Unknown label') {
+      return [
+        {
+          id: createManualRecordId('release-label', '1'),
+          label: initialRelease.label,
+          catalogNumber: '',
+          hasNoCatalogNumber: false,
+        },
+      ]
+    }
+
+    return []
   })
+  const [draftLabel, setDraftLabel] = useState('')
+  const [draftCatalogNumber, setDraftCatalogNumber] = useState('')
+  const [draftHasNoCatalogNumber, setDraftHasNoCatalogNumber] = useState(false)
   const [genres, setGenres] = useState<string[]>(initialRelease?.genres ?? [])
   const [type, setType] = useState<ReleaseType>(initialRelease?.type ?? 'Album')
   const [includeOwnedCopy, setIncludeOwnedCopy] = useState(Boolean(firstCopy))
@@ -368,18 +378,21 @@ function ReleaseEntryForm({
   )
   const [tags, setTags] = useState(initialRelease?.tags.join(', ') ?? '')
   const [draftTracks, setDraftTracks] = useState<DraftTrackRow[]>([])
-  const releaseMainArtistCredits = artistCredits
-    .map((credit): ReleaseArtistCredit => {
-      const existingArtist = artists.find(
-        (artist) => artist.id === credit.artistId,
-      )
-
-      return {
-        artistId: existingArtist?.id,
-        artist: existingArtist?.name ?? credit.artist.trim(),
-        role: credit.role,
-      }
-    })
+  const effectiveArtistCredits = artistCredits
+  const draftReleaseLabel: EditableReleaseLabel | undefined =
+    draftLabel.trim().length > 0
+      ? {
+          id: 'draft-release-label',
+          label: draftLabel,
+          catalogNumber: draftHasNoCatalogNumber ? '' : draftCatalogNumber,
+          hasNoCatalogNumber: draftHasNoCatalogNumber,
+        }
+      : undefined
+  const effectiveLabels = draftReleaseLabel
+    ? [...labels, draftReleaseLabel]
+    : labels
+  const releaseMainArtistCredits = effectiveArtistCredits
+    .map((credit) => releaseArtistCreditFromEditableCredit(credit, artists))
     .filter(
       (credit) => credit.role === 'Main artist' && credit.artist.length > 0,
     )
@@ -388,7 +401,28 @@ function ReleaseEntryForm({
   )
   const hasReleaseArtist =
     isVariousArtists ||
-    artistCredits.some((credit) => artistCreditName(credit, artists).length > 0)
+    effectiveArtistCredits.some(
+      (credit) => artistCreditName(credit, artists).length > 0,
+    )
+  const hasReleaseLabel =
+    notOnLabel || labels.some((label) => label.label.trim().length > 0)
+  const hasReleaseGenre = genres.length > 0
+  const hasReleaseTracklist =
+    Boolean(initialRelease) || draftTracks.some(isDraftTrackIncluded)
+  const hasUnsetReleaseArtistRole = artistCredits.some(
+    (credit) =>
+      artistCreditName(credit, artists).length > 0 &&
+      credit.role.trim().length === 0,
+  )
+  const hasUnsetTrackArtistRole = draftTracks.some(
+    (track) =>
+      isDraftTrackIncluded(track) &&
+      track.artistCredits.some(
+        (credit) =>
+          artistCreditName(credit, artists).length > 0 &&
+          credit.role.trim().length === 0,
+      ),
+  )
   const hasInvalidVariousArtistTrack = draftTracks.some(
     (track) =>
       isVariousArtists &&
@@ -400,6 +434,11 @@ function ReleaseEntryForm({
   const isValid =
     title.trim().length > 0 &&
     hasReleaseArtist &&
+    hasReleaseLabel &&
+    hasReleaseGenre &&
+    hasReleaseTracklist &&
+    !hasUnsetReleaseArtistRole &&
+    !hasUnsetTrackArtistRole &&
     !hasInvalidDraftTrack &&
     !hasInvalidVariousArtistTrack
   const requiredMessage =
@@ -407,12 +446,22 @@ function ReleaseEntryForm({
       ? 'Title is required.'
       : !hasReleaseArtist
         ? 'Add at least one release artist or mark this as Various Artists.'
-        : hasInvalidVariousArtistTrack
-          ? 'Track artists are required for Various Artists releases.'
-          : 'Tracklist rows with metadata need a track title.'
+        : hasUnsetReleaseArtistRole
+          ? 'Set a role for each release artist.'
+          : !hasReleaseLabel
+            ? 'Add a label or mark this as Not On Label.'
+            : !hasReleaseGenre
+              ? 'Select at least one genre.'
+              : !hasReleaseTracklist
+                ? 'Add at least one tracklist row.'
+                : hasUnsetTrackArtistRole
+                  ? 'Set a role for each track artist.'
+                  : hasInvalidVariousArtistTrack
+                    ? 'Track artists are required for Various Artists releases.'
+                    : 'Tracklist rows with metadata need a track title.'
   const releaseArtist = isVariousArtists
     ? 'Various Artists'
-    : artistCredits
+    : effectiveArtistCredits
         .map((credit) => artistCreditName(credit, artists))
         .filter(Boolean)
         .join(', ')
@@ -424,26 +473,65 @@ function ReleaseEntryForm({
   )
   const formTitle = initialRelease ? 'Edit release' : 'Add release'
 
+  function addDraftArtistCredit() {
+    const artistName = draftArtist.trim()
+
+    if (!artistName && !draftArtistId) {
+      return
+    }
+
+    setArtistCredits((credits) => [
+      ...credits,
+      {
+        id: createManualRecordId(
+          'release-artist-credit',
+          String(credits.length + 1),
+        ),
+        artistId: draftArtistId,
+        artist: draftArtistId ? '' : artistName,
+        role: '',
+      },
+    ])
+    setDraftArtist('')
+    setDraftArtistId('')
+  }
+
+  function addDraftLabel() {
+    const labelName = draftLabel.trim()
+
+    if (!labelName) {
+      return
+    }
+
+    setLabels((currentLabels) => [
+      ...currentLabels,
+      {
+        id: createManualRecordId(
+          'release-label',
+          `${currentLabels.length + 1}`,
+        ),
+        label: labelName,
+        catalogNumber: draftHasNoCatalogNumber ? '' : draftCatalogNumber.trim(),
+        hasNoCatalogNumber: draftHasNoCatalogNumber,
+      },
+    ])
+    setDraftLabel('')
+    setDraftCatalogNumber('')
+    setDraftHasNoCatalogNumber(false)
+  }
+
   function handleSubmit() {
     const releaseTitle = title.trim()
     const resolvedArtistCredits = isVariousArtists
       ? []
-      : artistCredits
-          .map((credit): ReleaseArtistCredit => {
-            const existingArtist = artists.find(
-              (artist) => artist.id === credit.artistId,
-            )
-
-            return {
-              artistId: existingArtist?.id,
-              artist: existingArtist?.name ?? credit.artist.trim(),
-              role: credit.role,
-            }
-          })
+      : effectiveArtistCredits
+          .map((credit) =>
+            releaseArtistCreditFromEditableCredit(credit, artists),
+          )
           .filter((credit) => credit.artist.length > 0)
     const resolvedLabels: ReleaseLabel[] = notOnLabel
       ? []
-      : labels
+      : effectiveLabels
           .map(
             (label): ReleaseLabel => ({
               name: label.label.trim(),
@@ -643,28 +731,53 @@ function ReleaseEntryForm({
     )
   }
 
-  function addTrackArtist(trackId: string) {
+  function handleTrackDraftArtistChange(trackId: string, nextName: string) {
+    const existingArtist = artists.find((artist) => artist.name === nextName)
+
     setDraftTracks((currentTracks) =>
       currentTracks.map((track) =>
         track.id === trackId
           ? {
               ...track,
-              inheritReleaseArtistCredits: false,
-              artistCredits: [
-                ...track.artistCredits,
-                {
-                  id: createManualRecordId(
-                    'track-artist-credit',
-                    `${track.artistCredits.length + 1}`,
-                  ),
-                  artistId: '',
-                  artist: '',
-                  role: 'Main artist',
-                },
-              ],
+              draftArtist: nextName,
+              draftArtistId: existingArtist?.id ?? '',
             }
           : track,
       ),
+    )
+  }
+
+  function addTrackArtist(trackId: string) {
+    setDraftTracks((currentTracks) =>
+      currentTracks.map((track) => {
+        if (track.id !== trackId) {
+          return track
+        }
+
+        const artistName = track.draftArtist.trim()
+        if (!artistName && !track.draftArtistId) {
+          return track
+        }
+
+        return {
+          ...track,
+          draftArtist: '',
+          draftArtistId: '',
+          inheritReleaseArtistCredits: false,
+          artistCredits: [
+            ...track.artistCredits,
+            {
+              id: createManualRecordId(
+                'track-artist-credit',
+                `${track.artistCredits.length + 1}`,
+              ),
+              artistId: track.draftArtistId,
+              artist: track.draftArtistId ? '' : artistName,
+              role: '',
+            },
+          ],
+        }
+      }),
     )
   }
 
@@ -740,38 +853,10 @@ function ReleaseEntryForm({
     )
   }
 
-  function addLabelRow() {
-    setLabels((currentLabels) => [
-      ...currentLabels,
-      {
-        id: createManualRecordId(
-          'release-label',
-          `${currentLabels.length + 1}`,
-        ),
-        label: '',
-        catalogNumber: '',
-        hasNoCatalogNumber: false,
-      },
-    ])
-  }
-
   function removeLabelRow(labelId: string) {
-    setLabels((currentLabels) => {
-      const remainingLabels = currentLabels.filter(
-        (label) => label.id !== labelId,
-      )
-
-      return remainingLabels.length > 0
-        ? remainingLabels
-        : [
-            {
-              id: createManualRecordId('release-label', '1'),
-              label: '',
-              catalogNumber: '',
-              hasNoCatalogNumber: false,
-            },
-          ]
-    })
+    setLabels((currentLabels) =>
+      currentLabels.filter((label) => label.id !== labelId),
+    )
   }
 
   function addDraftTrack() {
@@ -785,16 +870,9 @@ function ReleaseEntryForm({
         title: '',
         durationParts: { ...emptyDurationParts },
         inheritReleaseArtistCredits: !isVariousArtists,
-        artistCredits: isVariousArtists
-          ? [
-              {
-                id: createManualRecordId('track-artist-credit', '1'),
-                artistId: '',
-                artist: '',
-                role: 'Main artist',
-              },
-            ]
-          : [],
+        artistCredits: [],
+        draftArtist: '',
+        draftArtistId: '',
         versionNote: '',
       },
     ])
@@ -817,7 +895,7 @@ function ReleaseEntryForm({
           </div>
         </div>
         <div className="release-core-grid">
-          <label>
+          <label className="release-core-title-field">
             <span>Title</span>
             <input
               value={title}
@@ -825,7 +903,7 @@ function ReleaseEntryForm({
               required
             />
           </label>
-          <label>
+          <label className="release-core-year-field">
             <span>Year</span>
             <select
               aria-label="Year"
@@ -838,7 +916,7 @@ function ReleaseEntryForm({
               ))}
             </select>
           </label>
-          <label>
+          <label className="release-core-type-field">
             <span>Type</span>
             <select
               value={type}
@@ -863,7 +941,7 @@ function ReleaseEntryForm({
         <div className="release-form-section-header">
           <div>
             <h3>Artists</h3>
-            <p>Use multiple rows for collaborations and credited projects.</p>
+            <p>Release credits.</p>
           </div>
           <div className="release-section-actions">
             <label className="compact-checkbox">
@@ -874,28 +952,6 @@ function ReleaseEntryForm({
               />
               <span>Various Artists</span>
             </label>
-            {isVariousArtists ? null : (
-              <button
-                className="button button-secondary button-compact"
-                type="button"
-                onClick={() =>
-                  setArtistCredits((credits) => [
-                    ...credits,
-                    {
-                      id: createManualRecordId(
-                        'release-artist-credit',
-                        String(credits.length + 1),
-                      ),
-                      artistId: '',
-                      artist: '',
-                      role: 'Main artist',
-                    },
-                  ])
-                }
-              >
-                Add artist
-              </button>
-            )}
           </div>
         </div>
         {isVariousArtists ? (
@@ -903,65 +959,111 @@ function ReleaseEntryForm({
             Track rows must include their own artists.
           </p>
         ) : (
-          <div className="release-repeat-list">
-            {artistCredits.map((credit) => (
-              <div
-                className="release-repeat-row release-artist-row"
-                key={credit.id}
+          <div className="release-artist-editor">
+            <div className="release-artist-composer">
+              <label className="release-artist-composer-name">
+                <span>Artist</span>
+                <input
+                  aria-label="Release artist"
+                  list="release-artist-options"
+                  placeholder="Search or type artist"
+                  value={draftArtist}
+                  onChange={(event) => {
+                    const nextName = event.target.value
+                    const existingArtist = artists.find(
+                      (artist) => artist.name === nextName,
+                    )
+
+                    setDraftArtist(nextName)
+                    setDraftArtistId(existingArtist?.id ?? '')
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      addDraftArtistCredit()
+                    }
+                  }}
+                />
+              </label>
+              <button
+                className="button button-secondary button-compact"
+                type="button"
+                onClick={addDraftArtistCredit}
               >
-                <label>
-                  <span>Artist</span>
-                  <input
-                    aria-label="Release artist"
-                    list="release-artist-options"
-                    value={
-                      credit.artistId
-                        ? (artists.find(
-                            (artist) => artist.id === credit.artistId,
-                          )?.name ?? '')
-                        : credit.artist
-                    }
-                    onChange={(event) => {
-                      const nextName = event.target.value
-                      const existingArtist = artists.find(
-                        (artist) => artist.name === nextName,
-                      )
-                      setArtistCredits((credits) =>
-                        credits.map((currentCredit) =>
-                          currentCredit.id === credit.id
-                            ? {
-                                ...currentCredit,
-                                artistId: existingArtist?.id ?? '',
-                                artist: existingArtist ? '' : nextName,
-                              }
-                            : currentCredit,
-                        ),
-                      )
-                    }}
-                  />
-                </label>
-                <label>
-                  <span>Role</span>
-                  <select
-                    aria-label="Release artist role"
-                    value={credit.role}
-                    onChange={(event) =>
-                      setArtistCredits((credits) =>
-                        credits.map((currentCredit) =>
-                          currentCredit.id === credit.id
-                            ? { ...currentCredit, role: event.target.value }
-                            : currentCredit,
-                        ),
-                      )
-                    }
-                  >
-                    {creditRoleOptions.map((role) => (
-                      <option key={role}>{role}</option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            ))}
+                Add artist
+              </button>
+            </div>
+            <div className="release-artist-chip-list" aria-label="Artists">
+              {artistCredits.length === 0 ? (
+                <p className="release-section-note">
+                  Added artists will appear here.
+                </p>
+              ) : (
+                artistCredits.map((credit) => {
+                  const artistName = artistCreditName(credit, artists)
+
+                  return (
+                    <div className="release-artist-chip" key={credit.id}>
+                      <span className="release-artist-chip-name">
+                        {artistName || 'Unnamed artist'}
+                      </span>
+                      <label className="release-artist-chip-role">
+                        <span className="visually-hidden">
+                          Role for {artistName || 'artist'}
+                        </span>
+                        <span
+                          className={
+                            credit.role
+                              ? 'release-artist-chip-role-face'
+                              : 'release-artist-chip-role-face release-artist-chip-role-face-unset'
+                          }
+                          aria-hidden="true"
+                        >
+                          <span>{credit.role || 'Set role'}</span>
+                          <span className="release-artist-chip-role-caret" />
+                        </span>
+                        <select
+                          className="release-artist-chip-role-select"
+                          aria-label={`Role for ${artistName || 'artist'}`}
+                          value={credit.role}
+                          onChange={(event) =>
+                            setArtistCredits((credits) =>
+                              credits.map((currentCredit) =>
+                                currentCredit.id === credit.id
+                                  ? {
+                                      ...currentCredit,
+                                      role: event.target.value,
+                                    }
+                                  : currentCredit,
+                              ),
+                            )
+                          }
+                        >
+                          <option value="">Set role</option>
+                          {creditRoleOptions.map((role) => (
+                            <option key={role}>{role}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <button
+                        className="release-artist-chip-remove"
+                        type="button"
+                        aria-label={`Remove ${artistName || 'artist'}`}
+                        onClick={() =>
+                          setArtistCredits((credits) =>
+                            credits.filter(
+                              (currentCredit) => currentCredit.id !== credit.id,
+                            ),
+                          )
+                        }
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )
+                })
+              )}
+            </div>
           </div>
         )}
         <datalist id="release-artist-options">
@@ -974,18 +1076,9 @@ function ReleaseEntryForm({
         <div className="release-form-section-header">
           <div>
             <h3>Labels</h3>
-            <p>Catalog numbers belong to the release label entry.</p>
+            <p>Release label credits and catalog numbers.</p>
           </div>
           <div className="release-section-actions">
-            {notOnLabel ? null : (
-              <button
-                className="button button-secondary button-compact"
-                type="button"
-                onClick={addLabelRow}
-              >
-                Add label
-              </button>
-            )}
             <label className="compact-checkbox">
               <input
                 type="checkbox"
@@ -1001,81 +1094,85 @@ function ReleaseEntryForm({
             No label rows will be attached to this release.
           </p>
         ) : (
-          <div className="release-repeat-list">
-            {labels.map((label) => (
-              <div
-                className="release-repeat-row release-label-row"
-                key={label.id}
+          <div className="release-label-editor">
+            <div className="release-label-composer">
+              <label className="release-label-composer-name">
+                <span>Label</span>
+                <input
+                  aria-label="Label"
+                  placeholder="Search or type label"
+                  value={draftLabel}
+                  onChange={(event) => setDraftLabel(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      addDraftLabel()
+                    }
+                  }}
+                />
+              </label>
+              <label>
+                <span>Catalog number</span>
+                <input
+                  aria-label="Catalog number"
+                  placeholder="CAT-001"
+                  value={draftCatalogNumber}
+                  disabled={draftHasNoCatalogNumber}
+                  onChange={(event) =>
+                    setDraftCatalogNumber(event.target.value)
+                  }
+                />
+              </label>
+              <label className="compact-checkbox release-row-checkbox">
+                <input
+                  aria-label="No number"
+                  type="checkbox"
+                  checked={draftHasNoCatalogNumber}
+                  onChange={(event) => {
+                    setDraftHasNoCatalogNumber(event.target.checked)
+                    if (event.target.checked) {
+                      setDraftCatalogNumber('')
+                    }
+                  }}
+                />
+                <span>No number</span>
+              </label>
+              <button
+                className="button button-secondary button-compact"
+                type="button"
+                onClick={addDraftLabel}
               >
-                <label>
-                  <span>Label</span>
-                  <input
-                    aria-label="Label"
-                    value={label.label}
-                    onChange={(event) =>
-                      setLabels((currentLabels) =>
-                        currentLabels.map((currentLabel) =>
-                          currentLabel.id === label.id
-                            ? { ...currentLabel, label: event.target.value }
-                            : currentLabel,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  <span>Catalog number</span>
-                  <input
-                    aria-label="Catalog number"
-                    value={label.catalogNumber}
-                    disabled={label.hasNoCatalogNumber}
-                    onChange={(event) =>
-                      setLabels((currentLabels) =>
-                        currentLabels.map((currentLabel) =>
-                          currentLabel.id === label.id
-                            ? {
-                                ...currentLabel,
-                                catalogNumber: event.target.value,
-                              }
-                            : currentLabel,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label className="compact-checkbox release-row-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={label.hasNoCatalogNumber}
-                    onChange={(event) =>
-                      setLabels((currentLabels) =>
-                        currentLabels.map((currentLabel) =>
-                          currentLabel.id === label.id
-                            ? {
-                                ...currentLabel,
-                                hasNoCatalogNumber: event.target.checked,
-                                catalogNumber: event.target.checked
-                                  ? ''
-                                  : currentLabel.catalogNumber,
-                              }
-                            : currentLabel,
-                        ),
-                      )
-                    }
-                  />
-                  <span>No number</span>
-                </label>
-                {labels.length > 1 ? (
-                  <button
-                    className="button button-secondary button-compact release-row-remove"
-                    type="button"
-                    onClick={() => removeLabelRow(label.id)}
-                  >
-                    Remove
-                  </button>
-                ) : null}
-              </div>
-            ))}
+                Add label
+              </button>
+            </div>
+            <div className="release-label-chip-list" aria-label="Labels">
+              {labels.length === 0 ? (
+                <p className="release-section-note">
+                  Added labels will appear here.
+                </p>
+              ) : (
+                labels.map((label) => (
+                  <div className="release-label-chip" key={label.id}>
+                    <span className="release-label-chip-name">
+                      {label.label || 'Unnamed label'}
+                    </span>
+                    <span className="release-label-chip-number">
+                      {label.hasNoCatalogNumber
+                        ? 'No number'
+                        : label.catalogNumber || 'No number'}
+                    </span>
+                    <button
+                      className="release-label-chip-remove"
+                      type="button"
+                      aria-label={`Remove ${label.label || 'label'}`}
+                      onClick={() => removeLabelRow(label.id)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         )}
       </section>
@@ -1124,7 +1221,7 @@ function ReleaseEntryForm({
           <div className="release-form-section-header">
             <div>
               <h3 id="draft-track-section-title">Tracklist</h3>
-              <p>Optional rows create tracks linked to this release.</p>
+              <p>Rows create tracks linked to this release.</p>
             </div>
             <button
               className="button button-secondary button-compact"
@@ -1159,106 +1256,110 @@ function ReleaseEntryForm({
                     className="release-repeat-row release-track-row"
                     key={track.id}
                   >
-                    <span
-                      className="release-row-index"
-                      aria-label={`Track ${rowNumber}`}
-                    >
-                      {rowNumber}
-                    </span>
-                    <label>
-                      <span>Title</span>
-                      <input
-                        aria-label="Track title"
-                        value={track.title}
-                        onChange={(event) =>
-                          handleDraftTrackChange(
-                            track.id,
-                            'title',
-                            event.target.value,
-                          )
-                        }
-                      />
-                    </label>
-                    <div className="track-duration-field">
-                      <span>Duration</span>
-                      <div
-                        className="track-duration-control"
-                        role="group"
-                        aria-label="Track duration"
+                    <div className="release-track-row-header">
+                      <span
+                        className="release-row-index"
+                        aria-label={`Track ${rowNumber}`}
                       >
-                        <label>
-                          <span>Hours</span>
-                          <input
-                            aria-label="Track duration hours"
-                            inputMode="numeric"
-                            min="0"
-                            max="99"
-                            type="number"
-                            value={track.durationParts.hours}
-                            onChange={(event) =>
-                              handleDraftTrackDurationChange(
-                                track.id,
-                                'hours',
-                                event.target.value,
-                                99,
-                              )
-                            }
-                          />
-                        </label>
-                        <label>
-                          <span>Minutes</span>
-                          <input
-                            aria-label="Track duration minutes"
-                            inputMode="numeric"
-                            min="0"
-                            max="59"
-                            type="number"
-                            value={track.durationParts.minutes}
-                            onChange={(event) =>
-                              handleDraftTrackDurationChange(
-                                track.id,
-                                'minutes',
-                                event.target.value,
-                                59,
-                              )
-                            }
-                          />
-                        </label>
-                        <label>
-                          <span>Seconds</span>
-                          <input
-                            aria-label="Track duration seconds"
-                            inputMode="numeric"
-                            min="0"
-                            max="59"
-                            type="number"
-                            value={track.durationParts.seconds}
-                            onChange={(event) =>
-                              handleDraftTrackDurationChange(
-                                track.id,
-                                'seconds',
-                                event.target.value,
-                                59,
-                              )
-                            }
-                          />
-                        </label>
-                      </div>
+                        Track {rowNumber}
+                      </span>
                     </div>
-                    <label>
-                      <span>Version note</span>
-                      <input
-                        aria-label="Version note"
-                        value={track.versionNote}
-                        onChange={(event) =>
-                          handleDraftTrackChange(
-                            track.id,
-                            'versionNote',
-                            event.target.value,
-                          )
-                        }
-                      />
-                    </label>
+                    <div className="release-track-main-grid">
+                      <label className="release-track-title-field">
+                        <span>Title</span>
+                        <input
+                          aria-label="Track title"
+                          value={track.title}
+                          onChange={(event) =>
+                            handleDraftTrackChange(
+                              track.id,
+                              'title',
+                              event.target.value,
+                            )
+                          }
+                        />
+                      </label>
+                      <div className="track-duration-field">
+                        <span>Duration</span>
+                        <div
+                          className="track-duration-control"
+                          role="group"
+                          aria-label="Track duration"
+                        >
+                          <label>
+                            <span>Hours</span>
+                            <input
+                              aria-label="Track duration hours"
+                              inputMode="numeric"
+                              min="0"
+                              max="99"
+                              type="number"
+                              value={track.durationParts.hours}
+                              onChange={(event) =>
+                                handleDraftTrackDurationChange(
+                                  track.id,
+                                  'hours',
+                                  event.target.value,
+                                  99,
+                                )
+                              }
+                            />
+                          </label>
+                          <label>
+                            <span>Minutes</span>
+                            <input
+                              aria-label="Track duration minutes"
+                              inputMode="numeric"
+                              min="0"
+                              max="59"
+                              type="number"
+                              value={track.durationParts.minutes}
+                              onChange={(event) =>
+                                handleDraftTrackDurationChange(
+                                  track.id,
+                                  'minutes',
+                                  event.target.value,
+                                  59,
+                                )
+                              }
+                            />
+                          </label>
+                          <label>
+                            <span>Seconds</span>
+                            <input
+                              aria-label="Track duration seconds"
+                              inputMode="numeric"
+                              min="0"
+                              max="59"
+                              type="number"
+                              value={track.durationParts.seconds}
+                              onChange={(event) =>
+                                handleDraftTrackDurationChange(
+                                  track.id,
+                                  'seconds',
+                                  event.target.value,
+                                  59,
+                                )
+                              }
+                            />
+                          </label>
+                        </div>
+                      </div>
+                      <label className="release-track-version-field">
+                        <span>Version note</span>
+                        <input
+                          aria-label="Version note"
+                          value={track.versionNote}
+                          onChange={(event) =>
+                            handleDraftTrackChange(
+                              track.id,
+                              'versionNote',
+                              event.target.value,
+                            )
+                          }
+                        />
+                      </label>
+                    </div>
                     <div className="track-artist-editor">
                       <div className="track-artist-editor-header">
                         <span>Artists</span>
@@ -1328,78 +1429,109 @@ function ReleaseEntryForm({
                               </div>
                             </fieldset>
                           ) : null}
-                          {customTrackCredits.map((credit) => (
-                            <div className="track-artist-row" key={credit.id}>
-                              <label>
-                                <span>Artist</span>
-                                <input
-                                  aria-label="Track artist"
-                                  list="release-artist-options"
-                                  value={
-                                    credit.artistId
-                                      ? (artists.find(
-                                          (artist) =>
-                                            artist.id === credit.artistId,
-                                        )?.name ?? '')
-                                      : credit.artist
-                                  }
-                                  onChange={(event) => {
-                                    const nextName = event.target.value
-                                    const existingArtist = artists.find(
-                                      (artist) => artist.name === nextName,
-                                    )
-                                    handleTrackArtistChange(
-                                      track.id,
-                                      credit.id,
-                                      'artistId',
-                                      existingArtist?.id ?? '',
-                                    )
-                                    handleTrackArtistChange(
-                                      track.id,
-                                      credit.id,
-                                      'artist',
-                                      existingArtist ? '' : nextName,
-                                    )
-                                  }}
-                                />
-                              </label>
-                              <label>
-                                <span>Role</span>
-                                <select
-                                  aria-label="Track credit role"
-                                  value={credit.role}
-                                  onChange={(event) =>
-                                    handleTrackArtistChange(
-                                      track.id,
-                                      credit.id,
-                                      'role',
-                                      event.target.value,
-                                    )
-                                  }
-                                >
-                                  {creditRoleOptions.map((role) => (
-                                    <option key={role}>{role}</option>
-                                  ))}
-                                </select>
-                              </label>
-                              <button
-                                className="button button-secondary button-compact release-row-remove"
-                                type="button"
-                                onClick={() =>
-                                  removeTrackArtist(track.id, credit.id)
+                          <div className="track-artist-composer">
+                            <label>
+                              <span>Artist</span>
+                              <input
+                                aria-label="Track artist"
+                                list="release-artist-options"
+                                placeholder="Search or type artist"
+                                value={track.draftArtist}
+                                onChange={(event) =>
+                                  handleTrackDraftArtistChange(
+                                    track.id,
+                                    event.target.value,
+                                  )
                                 }
-                              >
-                                Remove
-                              </button>
-                            </div>
-                          ))}
-                          <button
-                            className="button button-secondary button-compact"
-                            type="button"
-                            onClick={() => addTrackArtist(track.id)}
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter') {
+                                    event.preventDefault()
+                                    addTrackArtist(track.id)
+                                  }
+                                }}
+                              />
+                            </label>
+                            <button
+                              aria-label="Add track artist"
+                              className="button button-secondary button-compact"
+                              type="button"
+                              onClick={() => addTrackArtist(track.id)}
+                            >
+                              Add artist
+                            </button>
+                          </div>
+                          <div
+                            className="track-artist-custom-chip-list"
+                            aria-label="Track artists"
                           >
-                            Add artist
-                          </button>
+                            {customTrackCredits.length === 0 ? (
+                              <p className="release-section-note">
+                                Added track artists will appear here.
+                              </p>
+                            ) : (
+                              customTrackCredits.map((credit) => {
+                                const artistName = artistCreditName(
+                                  credit,
+                                  artists,
+                                )
+
+                                return (
+                                  <div
+                                    className="release-artist-chip"
+                                    key={credit.id}
+                                  >
+                                    <span className="release-artist-chip-name">
+                                      {artistName || 'Unnamed artist'}
+                                    </span>
+                                    <label className="release-artist-chip-role">
+                                      <span className="visually-hidden">
+                                        Track role for {artistName || 'artist'}
+                                      </span>
+                                      <span
+                                        className={
+                                          credit.role
+                                            ? 'release-artist-chip-role-face'
+                                            : 'release-artist-chip-role-face release-artist-chip-role-face-unset'
+                                        }
+                                        aria-hidden="true"
+                                      >
+                                        <span>{credit.role || 'Set role'}</span>
+                                        <span className="release-artist-chip-role-caret" />
+                                      </span>
+                                      <select
+                                        className="release-artist-chip-role-select"
+                                        aria-label={`Track role for ${artistName || 'artist'}`}
+                                        value={credit.role}
+                                        onChange={(event) =>
+                                          handleTrackArtistChange(
+                                            track.id,
+                                            credit.id,
+                                            'role',
+                                            event.target.value,
+                                          )
+                                        }
+                                      >
+                                        <option value="">Set role</option>
+                                        {creditRoleOptions.map((role) => (
+                                          <option key={role}>{role}</option>
+                                        ))}
+                                      </select>
+                                    </label>
+                                    <button
+                                      className="release-artist-chip-remove"
+                                      type="button"
+                                      aria-label={`Remove ${artistName || 'artist'} from track`}
+                                      onClick={() =>
+                                        removeTrackArtist(track.id, credit.id)
+                                      }
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                )
+                              })
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1484,6 +1616,19 @@ function editableArtistCreditFromReleaseCredit(
     id: createManualRecordId('track-artist-credit', `${index + 1}`),
     artistId: credit.artistId ?? '',
     artist: credit.artistId ? '' : credit.artist,
+    role: credit.role,
+  }
+}
+
+function releaseArtistCreditFromEditableCredit(
+  credit: EditableArtistCredit,
+  artists: ArtistRecord[],
+): ReleaseArtistCredit {
+  const existingArtist = artists.find((artist) => artist.id === credit.artistId)
+
+  return {
+    artistId: existingArtist?.id,
+    artist: existingArtist?.name ?? credit.artist.trim(),
     role: credit.role,
   }
 }

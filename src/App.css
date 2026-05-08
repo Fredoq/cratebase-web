@@ -499,11 +499,12 @@
 .release-core-grid,
 .release-owned-copy-grid {
   display: grid;
-  grid-template-columns: minmax(260px, 2fr) minmax(110px, 0.55fr) minmax(
-      150px,
-      0.75fr
-    );
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
   gap: 10px;
+}
+
+.release-core-title-field {
+  grid-column: 1 / -1;
 }
 
 .release-owned-copy-grid {
@@ -530,30 +531,272 @@
   grid-template-columns: minmax(220px, 1fr) minmax(160px, 240px);
 }
 
+.release-artist-editor {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.release-artist-composer {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.release-artist-composer-name {
+  min-width: 0;
+}
+
+.release-artist-composer > .button {
+  align-self: end;
+}
+
+.release-artist-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.release-artist-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  min-width: 0;
+  border: 1px solid #c8d4c4;
+  border-radius: 999px;
+  background: #eef3eb;
+  padding: 5px 6px 5px 14px;
+}
+
+.release-artist-chip-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-heading);
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.release-artist-chip-role {
+  position: relative;
+  display: inline-grid;
+  min-height: 28px;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+.release-artist-chip-role-face {
+  display: inline-flex;
+  min-height: 26px;
+  align-items: center;
+  gap: 7px;
+  border-color: #bdc9b9;
+  border: 1px solid #bdc9b9;
+  border-radius: 999px;
+  background-color: #f8faf6;
+  color: var(--color-heading);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0 9px 0 10px;
+  white-space: nowrap;
+}
+
+.manual-entry-grid .release-artist-chip-role-face span {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.release-artist-chip-role-face-unset {
+  border-color: #9da996;
+  color: var(--color-muted);
+}
+
+.release-artist-chip-role-caret {
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid var(--color-muted);
+  border-bottom: 1.5px solid var(--color-muted);
+  transform: translateY(-1px) rotate(45deg);
+}
+
+.release-artist-chip-role-select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  appearance: none;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.release-artist-chip-role:focus-within .release-artist-chip-role-face {
+  outline: 3px solid rgba(81, 111, 82, 0.18);
+  outline-offset: 2px;
+}
+
+.release-artist-chip-remove {
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.release-artist-chip-remove:hover {
+  background: #dfe8dc;
+  color: var(--color-heading);
+}
+
+.release-artist-chip-remove:focus-visible {
+  outline: 3px solid rgba(81, 111, 82, 0.18);
+  outline-offset: 2px;
+}
+
 .release-label-row {
   grid-template-columns: minmax(220px, 1fr) minmax(160px, 240px) auto auto;
 }
 
-.release-track-row {
-  grid-template-columns:
-    28px minmax(260px, 1.4fr) minmax(220px, 0.7fr)
-    minmax(240px, 0.9fr);
+.release-label-editor {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.release-label-composer {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(150px, 240px) auto auto;
   align-items: start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.release-label-composer-name {
+  min-width: 0;
+}
+
+.release-label-composer > .button,
+.release-label-composer > .release-row-checkbox {
+  align-self: end;
+}
+
+.release-label-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.release-label-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  min-width: 0;
+  border: 1px solid #c8d4c4;
+  border-radius: 999px;
+  background: #eef3eb;
+  padding: 5px 6px 5px 14px;
+}
+
+.release-label-chip-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-heading);
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.release-label-chip-number {
+  display: inline-flex;
+  min-height: 26px;
+  align-items: center;
+  border: 1px solid #bdc9b9;
+  border-radius: 999px;
+  background: #f8faf6;
+  color: var(--color-heading);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.release-label-chip-remove {
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.release-label-chip-remove:hover {
+  background: #dfe8dc;
+  color: var(--color-heading);
+}
+
+.release-label-chip-remove:focus-visible {
+  outline: 3px solid rgba(81, 111, 82, 0.18);
+  outline-offset: 2px;
+}
+
+.release-track-row {
+  grid-template-columns: 1fr;
+  gap: 12px;
+  padding: 12px;
+}
+
+.release-track-row-header {
+  display: flex;
+  align-items: center;
+}
+
+.release-track-main-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.3fr) minmax(280px, 0.8fr) minmax(
+      260px,
+      0.9fr
+    );
+  align-items: end;
+  gap: 10px;
+  min-width: 0;
 }
 
 .release-row-index {
   display: inline-grid;
-  width: 22px;
-  height: 22px;
+  min-height: 26px;
   place-items: center;
-  align-self: center;
-  margin-top: 22px;
   border: 1px solid var(--color-border);
   border-radius: 999px;
   background: var(--color-surface);
   color: var(--color-muted);
   font-size: 12px;
   font-weight: 760;
+  padding: 0 10px;
 }
 
 .track-duration-field {
@@ -572,7 +815,7 @@
 
 .track-duration-control {
   display: grid;
-  grid-template-columns: repeat(3, minmax(54px, 1fr));
+  grid-template-columns: repeat(3, minmax(72px, 1fr));
   gap: 6px;
 }
 
@@ -587,7 +830,7 @@
 
 .track-duration-control input {
   min-height: 34px;
-  padding: 0 4px 0 8px;
+  padding: 0 6px 0 8px;
   text-align: center;
 }
 
@@ -630,7 +873,6 @@
 
 .track-artist-editor {
   display: grid;
-  grid-column: 2 / -1;
   gap: 8px;
   min-width: 0;
 }
@@ -702,6 +944,21 @@
   gap: 8px;
 }
 
+.track-artist-composer {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.track-artist-custom-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
 .track-artist-chip-fieldset {
   display: grid;
   gap: 6px;
@@ -709,13 +966,6 @@
   border: 0;
   margin: 0;
   padding: 0;
-}
-
-.track-artist-row {
-  display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(140px, 220px) auto;
-  gap: 8px;
-  align-items: end;
 }
 
 .genre-chip-fieldset {
@@ -1274,13 +1524,15 @@
 
   .release-core-grid,
   .release-owned-copy-grid,
+  .release-artist-composer,
+  .release-label-composer,
   .release-artist-row,
   .release-label-row {
     grid-template-columns: 1fr;
   }
 
-  .release-track-row {
-    grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr);
+  .release-track-main-grid {
+    grid-template-columns: 1fr 1fr;
   }
 
   .release-row-checkbox {
@@ -1343,8 +1595,14 @@
     grid-template-columns: 1fr;
   }
 
-  .release-row-index {
-    justify-self: start;
+  .release-track-main-grid,
+  .track-artist-composer {
+    grid-template-columns: 1fr;
+  }
+
+  .track-artist-editor-header {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .draft-track-row {
