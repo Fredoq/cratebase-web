@@ -401,6 +401,89 @@
   grid-column: 1 / -1;
 }
 
+.track-entry-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  align-items: start;
+  gap: 18px;
+}
+
+.track-entry-main {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.track-entry-side {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  border-left: 1px solid var(--color-border);
+  padding-left: 16px;
+}
+
+.track-core-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(300px, 420px);
+  align-items: end;
+  gap: 10px;
+}
+
+.track-core-title-field {
+  min-width: 0;
+}
+
+.track-credit-composer {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.track-credit-composer > .button {
+  align-self: end;
+}
+
+.track-appearance-list {
+  display: grid;
+  gap: 8px;
+}
+
+.track-appearance-card {
+  display: grid;
+  gap: 3px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 8px;
+}
+
+.track-appearance-card:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.track-appearance-card strong {
+  color: var(--color-heading);
+  font-size: 13px;
+}
+
+.track-appearance-card span {
+  justify-self: start;
+  border: 1px solid #bdc9b9;
+  border-radius: 999px;
+  background: #f8faf6;
+  color: var(--color-heading);
+  font-size: 11px;
+  font-weight: 740;
+  padding: 2px 8px;
+}
+
+.track-appearance-card p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
 .draft-track-section {
   display: grid;
   gap: 10px;
@@ -1524,11 +1607,21 @@
 
   .release-core-grid,
   .release-owned-copy-grid,
+  .track-core-grid,
+  .track-entry-layout,
   .release-artist-composer,
+  .track-credit-composer,
   .release-label-composer,
   .release-artist-row,
   .release-label-row {
     grid-template-columns: 1fr;
+  }
+
+  .track-entry-side {
+    border-top: 1px solid var(--color-border);
+    border-left: 0;
+    padding-top: 12px;
+    padding-left: 0;
   }
 
   .release-track-main-grid {
@@ -1596,8 +1689,18 @@
   }
 
   .release-track-main-grid,
-  .track-artist-composer {
+  .track-artist-composer,
+  .track-credit-composer,
+  .track-core-grid,
+  .track-entry-layout {
     grid-template-columns: 1fr;
+  }
+
+  .track-entry-side {
+    border-top: 1px solid var(--color-border);
+    border-left: 0;
+    padding-top: 12px;
+    padding-left: 0;
   }
 
   .track-artist-editor-header {

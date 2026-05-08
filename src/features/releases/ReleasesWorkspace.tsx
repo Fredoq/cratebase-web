@@ -616,6 +616,10 @@ function ReleaseEntryForm({
           effectiveTrackCredits.map((credit) => credit.artist).join(', ') ||
           displayArtist
         const note = track.versionNote.trim()
+        const trackDuration = textOrFallback(
+          durationPartsToText(track.durationParts),
+          'Unknown duration',
+        )
 
         return {
           id: createManualRecordId('track', `${releaseTitle}-${trackTitle}`),
@@ -630,24 +634,31 @@ function ReleaseEntryForm({
             label: release.label,
           },
           trackNumber: String(index + 1),
-          duration: textOrFallback(
-            durationPartsToText(track.durationParts),
-            'Unknown duration',
-          ),
+          duration: trackDuration,
           versionHint: textOrFallback(note, 'No version note recorded'),
           relationHint: textOrFallback(
             note,
             'Manual track created with release entry.',
           ),
           tags: ['manual entry'],
-          credits: track.inheritReleaseArtistCredits
-            ? []
-            : effectiveTrackCredits.map((credit) => ({
-                artistId: credit.artistId,
-                role: credit.role,
-                artist: credit.artist,
-                scope: 'Tracklist credit from release entry.',
-              })),
+          credits: effectiveTrackCredits.map((credit) => ({
+            artistId: credit.artistId,
+            role: credit.role,
+            artist: credit.artist,
+            scope: 'Tracklist credit from release entry.',
+          })),
+          releaseAppearances: [
+            {
+              releaseId: release.id,
+              releaseTitle: release.title,
+              releaseArtist: release.artist,
+              year: release.year,
+              label: release.label,
+              position: String(index + 1),
+              duration: trackDuration,
+              versionNote: textOrFallback(note, 'No version note recorded'),
+            },
+          ],
           relations:
             note.length > 0
               ? [
