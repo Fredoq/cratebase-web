@@ -547,7 +547,7 @@ export async function createRelease(
     tags: release.tags,
     tracklist: tracks.map((track, index) => ({
       title: track.title,
-      position: Number.parseInt(track.trackNumber, 10) || index + 1,
+      position: parseTrackPosition(track.trackNumber, index + 1),
       durationSeconds: parseDuration(track.duration),
       artistCredits: track.credits.map((credit) =>
         toReleaseArtistCreditRequest({
@@ -1250,22 +1250,6 @@ function toTrackRecord(
   const credits = targetCredits(creditsByTarget, 'track', track.id)
   const releaseTracks = releaseTrackByTrackId.get(track.id) ?? []
   const primaryReleaseTrack = releaseTracks[0]
-  const trackCredits = track.credits
-    ? track.credits.map(toTrackCreditFromTrackCreditDto)
-    : primaryReleaseTrack?.track.artistCredits &&
-        primaryReleaseTrack.track.artistCredits.length > 0
-      ? primaryReleaseTrack.track.artistCredits.map(
-          toTrackCreditFromReleaseCredit,
-        )
-      : credits.map(toTrackCredit)
-  const mainCredit =
-    trackCredits.find((credit) => credit.role === 'Main artist') ??
-    trackCredits[0]
-  const release = primaryReleaseTrack?.release
-    ? releasesById.get(primaryReleaseTrack.release.id)
-    : undefined
-  const releaseArtist = release ? releaseArtistDisplay(release) : undefined
-  const trackArtist = mainCredit?.artist ?? releaseArtist ?? 'Unknown artist'
   const releaseAppearances =
     track.releaseAppearances?.map((appearance) => ({
       releaseId: appearance.releaseId,
@@ -1299,6 +1283,48 @@ function toTrackRecord(
         versionNote: releaseTrack.versionNote ?? 'No version relation recorded',
       }
     })
+  const primaryAppearance = primaryReleaseTrack
+    ? undefined
+    : releaseAppearances[0]
+  const trackCredits = track.credits
+    ? track.credits.map(toTrackCreditFromTrackCreditDto)
+    : primaryReleaseTrack?.track.artistCredits &&
+        primaryReleaseTrack.track.artistCredits.length > 0
+      ? primaryReleaseTrack.track.artistCredits.map(
+          toTrackCreditFromReleaseCredit,
+        )
+      : credits.map(toTrackCredit)
+  const mainCredit =
+    trackCredits.find((credit) => credit.role === 'Main artist') ??
+    trackCredits[0]
+  const release = primaryReleaseTrack?.release
+    ? releasesById.get(primaryReleaseTrack.release.id)
+    : primaryAppearance?.releaseId
+      ? releasesById.get(primaryAppearance.releaseId)
+      : undefined
+  const releaseTitle =
+    release?.title ?? primaryAppearance?.releaseTitle ?? 'Unlinked release'
+  const releaseArtist = release
+    ? releaseArtistDisplay(release)
+    : primaryAppearance?.releaseArtist
+  const releaseYear =
+    release?.year?.toString() ?? primaryAppearance?.year ?? 'Unknown year'
+  const releaseLabel = release
+    ? releaseLabelDisplayFromDto(release)
+    : (primaryAppearance?.label ?? 'Unknown label')
+  const trackNumber =
+    primaryReleaseTrack?.track.position.toString() ??
+    primaryAppearance?.position ??
+    'Unnumbered'
+  const trackDuration =
+    primaryReleaseTrack?.track.durationSeconds !== undefined
+      ? formatDuration(primaryReleaseTrack.track.durationSeconds)
+      : (primaryAppearance?.duration ?? formatDuration(track.durationSeconds))
+  const versionHint =
+    primaryReleaseTrack?.track.versionNote ??
+    primaryAppearance?.versionNote ??
+    'No version relation recorded'
+  const trackArtist = mainCredit?.artist ?? releaseArtist ?? 'Unknown artist'
 
   return {
     id: track.id,
@@ -1307,17 +1333,14 @@ function toTrackRecord(
     artist: trackArtist,
     release: {
       id: release?.id,
-      title: release?.title ?? 'Unlinked release',
+      title: releaseTitle,
       artist: releaseArtist ?? trackArtist,
-      year: release?.year?.toString() ?? 'Unknown year',
-      label: release ? releaseLabelDisplayFromDto(release) : 'Unknown label',
+      year: releaseYear,
+      label: releaseLabel,
     },
-    trackNumber: primaryReleaseTrack?.track.position.toString() ?? 'Unnumbered',
-    duration: formatDuration(
-      primaryReleaseTrack?.track.durationSeconds ?? track.durationSeconds,
-    ),
-    versionHint:
-      primaryReleaseTrack?.track.versionNote ?? 'No version relation recorded',
+    trackNumber,
+    duration: trackDuration,
+    versionHint,
     relationHint: 'Track loaded from the authenticated collection API.',
     tags: [...track.genres, ...track.tags],
     credits: trackCredits,
@@ -1571,12 +1594,34 @@ function toTrackAppearanceRequest(
 ) {
   return {
     releaseId: appearance.releaseId,
-    position: Number.parseInt(appearance.position, 10) || 1,
+    position: parseTrackPosition(appearance.position),
     versionNote:
       appearance.versionNote === 'No version relation recorded'
         ? null
         : appearance.versionNote,
   }
+}
+
+function parseTrackPosition(position: string, fallback?: number) {
+  const trimmed = position.trim()
+  if (trimmed.length === 0 && fallback !== undefined) {
+    return fallback
+  }
+
+  if (!/^\d+$/.test(trimmed)) {
+    throw new Error(
+      'Track position must be a positive number before saving to the API.',
+    )
+  }
+
+  const parsed = Number.parseInt(trimmed, 10)
+  if (parsed < 1) {
+    throw new Error(
+      'Track position must be a positive number before saving to the API.',
+    )
+  }
+
+  return parsed
 }
 
 function toReleaseLabelRequest(label: ReleaseLabel) {
