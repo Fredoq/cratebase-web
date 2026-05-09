@@ -774,7 +774,7 @@ describe('App', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('keeps backlinks current when a linked manual artist is edited', async () => {
+  it('keeps artist appearances current when a linked manual artist is edited', async () => {
     window.history.pushState({}, '', '/artists')
     const user = userEvent.setup()
     render(<App />)
@@ -811,9 +811,12 @@ describe('App', () => {
       name: 'Backlink Edited Artist',
     })
     expect(
-      within(detailSection(detailPanel, 'Graph backlinks')).getByRole('link', {
-        name: 'Backlink EP',
-      }),
+      within(detailSection(detailPanel, 'Credit appearances')).getByRole(
+        'link',
+        {
+          name: 'Backlink EP',
+        },
+      ),
     ).toHaveAttribute(
       'href',
       expect.stringContaining('/releases?release=manual-release-backlink-ep-'),
@@ -1582,7 +1585,9 @@ describe('App', () => {
     expect(
       within(detailPanel).getByRole('heading', { name: 'The DFA' }),
     ).toBeInTheDocument()
-    expect(within(detailPanel).getByText('Remixer')).toBeInTheDocument()
+    expect(within(detailPanel).getAllByText('Remixer').length).toBeGreaterThan(
+      0,
+    )
     expect(within(detailPanel).getByText('LCD Soundsystem')).toBeInTheDocument()
   })
 
@@ -3399,13 +3404,12 @@ describe('App', () => {
 
     await user.click(screen.getByRole('button', { name: 'Add artist' }))
     await user.type(screen.getByLabelText('Name'), 'Catalog Session Artist')
-    await user.type(screen.getByLabelText('Primary credit role'), 'Archivist')
     await user.click(screen.getByRole('button', { name: 'Add record' }))
 
     await user.click(screen.getByRole('link', { name: 'Catalog' }))
     await user.type(
       screen.getByRole('searchbox', { name: 'Search collection' }),
-      'Catalog Session Artist Archivist',
+      'Catalog Session Artist',
     )
 
     expect(
