@@ -17,6 +17,10 @@ import {
   normalizeDurationPart,
   type DurationParts,
 } from '../catalog/durationFormat'
+import {
+  creditRoleOptions as trackCreditRoleOptions,
+  toCreditRole,
+} from '../catalog/creditRoles'
 import { FilterSelect } from '../catalog/FilterSelect'
 import { useCatalogSelection } from '../catalog/useCatalogSelection'
 import type { ArtistRecord } from '../artists/artistsData'
@@ -31,15 +35,7 @@ import type {
   TrackReleaseAppearance,
 } from './tracksData'
 
-const trackCreditRoleOptions = [
-  'Main artist',
-  'Featured artist',
-  'Remixer',
-  'Producer',
-  'Composer',
-  'Performer',
-  'Engineer',
-]
+const emptyVersionNote = 'No version relation recorded'
 
 const trackGenreOptions = [
   'Ambient',
@@ -417,7 +413,7 @@ function TrackEntryForm({
       duration: trackDuration,
       versionHint: textOrFallback(
         note,
-        initialTrack?.versionHint ?? 'No version note recorded',
+        initialTrack?.versionHint ?? emptyVersionNote,
       ),
       relationHint: textOrFallback(
         note,
@@ -428,7 +424,7 @@ function TrackEntryForm({
       credits: credits.map(({ artistId, artist, role, scope }) => ({
         artistId,
         artist,
-        role,
+        role: toCreditRole(role),
         scope,
       })),
       releaseAppearances: normalizedAppearances,
@@ -607,7 +603,7 @@ function TrackEntryForm({
                               currentCredit.id === credit.id
                                 ? {
                                     ...currentCredit,
-                                    role: event.target.value,
+                                    role: toCreditRole(event.target.value),
                                   }
                                 : currentCredit,
                             ),
@@ -782,10 +778,14 @@ function trackVersionDisplay(track: TrackRecord) {
   const appearanceNotes = uniqueValues(
     trackReleaseAppearances(track)
       .map((appearance) => appearance.versionNote)
-      .filter((note) => note && note !== 'No version note recorded'),
+      .filter((note) => note && !isEmptyVersionNote(note)),
   )
 
   return appearanceNotes[0] ?? track.versionHint
+}
+
+function isEmptyVersionNote(note: string) {
+  return note === emptyVersionNote || note === 'No version note recorded'
 }
 
 function hasRealLocalFile(track: TrackRecord) {

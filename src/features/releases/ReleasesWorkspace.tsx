@@ -18,6 +18,7 @@ import {
   normalizeDurationPart,
   type DurationParts,
 } from '../catalog/durationFormat'
+import { creditRoleOptions, toCreditRole } from '../catalog/creditRoles'
 import { FilterSelect } from '../catalog/FilterSelect'
 import { useCatalogSelection } from '../catalog/useCatalogSelection'
 import type { ArtistRecord } from '../artists/artistsData'
@@ -83,7 +84,7 @@ export function ReleasesWorkspace({
         terms.every((term) => releaseSearchText(release).includes(term)) &&
         (!filters.medium ||
           release.ownedCopies.some((copy) => copy.medium === filters.medium)) &&
-        (!filters.label || release.label === filters.label) &&
+        (!filters.label || releaseHasLabel(release, filters.label)) &&
         (!filters.year || release.year === filters.year) &&
         (!filters.tag ||
           [...release.genres, ...release.tags].includes(filters.tag)),
@@ -171,7 +172,7 @@ export function ReleasesWorkspace({
           <FilterSelect
             label="Label"
             value={filters.label}
-            values={uniqueValues(releases.map((release) => release.label))}
+            values={uniqueValues(releases.flatMap(releaseLabelNames))}
             onChange={(label) =>
               setFilters((current) => ({ ...current, label }))
             }
@@ -229,7 +230,11 @@ export function ReleasesWorkspace({
           release={selectedRelease}
           relations={relations}
           tracks={tracks.filter(
-            (track) => track.release.id === selectedRelease.id,
+            (track) =>
+              track.release.id === selectedRelease.id ||
+              track.releaseAppearances.some(
+                (appearance) => appearance.releaseId === selectedRelease.id,
+              ),
           )}
         />
       ) : (
@@ -283,15 +288,7 @@ const genreOptions = [
   'Remix',
 ]
 
-const creditRoleOptions = [
-  'Main artist',
-  'Featured artist',
-  'Remixer',
-  'Producer',
-  'Composer',
-  'Performer',
-  'Engineer',
-]
+const emptyVersionNote = 'No version relation recorded'
 
 const releaseYearOptions = Array.from(
   { length: new Date().getFullYear() - 1899 },
@@ -566,12 +563,14 @@ function ReleaseEntryForm({
                 createManualRecordId('release-copy', releaseTitle),
               medium: textOrFallback(copyMedium, 'Other'),
               status: copyStatus || 'Owned',
-              storage: 'No storage recorded',
-              condition: 'No condition recorded',
-              note: 'Manual owned-copy hint from release entry.',
+              storage: firstCopy?.storage ?? 'No storage recorded',
+              condition: firstCopy?.condition ?? 'No condition recorded',
+              note:
+                firstCopy?.note ?? 'Manual owned-copy hint from release entry.',
             },
+            ...(initialRelease?.ownedCopies.slice(1) ?? []),
           ]
-        : []
+        : (initialRelease?.ownedCopies.slice(1) ?? [])
     const release: ReleaseRecord = {
       id: releaseId,
       title: releaseTitle,
@@ -602,7 +601,7 @@ function ReleaseEntryForm({
             return {
               artistId: existingArtist?.id,
               artist: existingArtist?.name ?? credit.artist.trim(),
-              role: credit.role,
+              role: toCreditRole(credit.role),
             }
           })
           .filter((credit) => credit.artist.length > 0)
@@ -635,7 +634,7 @@ function ReleaseEntryForm({
           },
           trackNumber: String(index + 1),
           duration: trackDuration,
-          versionHint: textOrFallback(note, 'No version note recorded'),
+          versionHint: textOrFallback(note, emptyVersionNote),
           relationHint: textOrFallback(
             note,
             'Manual track created with release entry.',
@@ -656,7 +655,7 @@ function ReleaseEntryForm({
               label: release.label,
               position: String(index + 1),
               duration: trackDuration,
-              versionNote: textOrFallback(note, 'No version note recorded'),
+              versionNote: textOrFallback(note, emptyVersionNote),
             },
           ],
           relations:
@@ -1640,7 +1639,7 @@ function releaseArtistCreditFromEditableCredit(
   return {
     artistId: existingArtist?.id,
     artist: existingArtist?.name ?? credit.artist.trim(),
-    role: credit.role,
+    role: toCreditRole(credit.role),
   }
 }
 
@@ -1715,6 +1714,23 @@ function releaseSearchText(release: ReleaseRecord) {
   ]
     .join(' ')
     .toLowerCase()
+}
+
+function releaseLabelNames(release: ReleaseRecord) {
+  const labels =
+    release.labels
+      ?.map((label) => label.name)
+      .filter((label) => label.trim().length > 0) ?? []
+
+  if (labels.length > 0) {
+    return labels
+  }
+
+  return release.label === 'Unknown label' ? [] : [release.label]
+}
+
+function releaseHasLabel(release: ReleaseRecord, label: string) {
+  return releaseLabelNames(release).includes(label)
 }
 
 type SearchFieldProps = {

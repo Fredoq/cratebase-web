@@ -1,3 +1,5 @@
+import type { CreditRole } from '../catalog/creditRoles'
+
 export type ReleaseType = 'Album' | 'Single' | 'EP' | 'Compilation' | 'Other'
 
 export type OwnedCopy = {
@@ -12,7 +14,7 @@ export type OwnedCopy = {
 export type ReleaseArtistCredit = {
   artistId?: string
   artist: string
-  role: string
+  role: CreditRole
 }
 
 export type ReleaseLabel = {

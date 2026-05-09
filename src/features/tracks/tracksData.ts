@@ -1,6 +1,8 @@
+import type { CreditRole } from '../catalog/creditRoles'
+
 export type TrackCredit = {
   artistId?: string
-  role: string
+  role: CreditRole
   artist: string
   scope: string
 }

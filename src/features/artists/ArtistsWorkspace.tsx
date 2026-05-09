@@ -660,6 +660,16 @@ function buildArtistInsights(
       return []
     }
 
+    if (track.release.id) {
+      releaseIds.add(encodeURIComponent(track.release.id))
+    }
+
+    for (const appearance of track.releaseAppearances) {
+      if (appearance.releaseId) {
+        releaseIds.add(encodeURIComponent(appearance.releaseId))
+      }
+    }
+
     return [
       {
         key: `track-${track.id}`,

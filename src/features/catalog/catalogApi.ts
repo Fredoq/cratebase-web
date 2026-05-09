@@ -12,6 +12,7 @@ import type {
 } from '../releases/releasesData'
 import type { RelationRecord } from '../relations/relationsData'
 import type { TrackCredit, TrackRecord } from '../tracks/tracksData'
+import { toCreditRole } from './creditRoles'
 import { formatDurationSeconds, parseDurationText } from './durationFormat'
 
 const pageSize = 100
@@ -556,10 +557,9 @@ export async function createRelease(
           role: credit.role,
         }),
       ),
-      versionNote:
-        track.versionHint === 'No version note recorded'
-          ? null
-          : track.versionHint,
+      versionNote: isEmptyVersionNote(track.versionHint)
+        ? null
+        : track.versionHint,
     })),
     ownedCopy: release.ownedCopies[0]
       ? {
@@ -711,7 +711,7 @@ async function createTrackRecord(track: TrackRecord) {
     title: track.title,
     durationSeconds: parseDuration(track.duration),
     genres: track.tags.filter((tag) => genreOptions.has(tag)),
-    tags: track.tags,
+    tags: track.tags.filter((tag) => !genreOptions.has(tag)),
     credits: track.credits.map(toTrackCreditRequest),
     releaseAppearances: track.releaseAppearances
       .filter((appearance) => appearance.releaseId)
@@ -753,7 +753,7 @@ export async function updateTrack(track: TrackRecord) {
     title: track.title,
     durationSeconds: parseDuration(track.duration),
     genres: track.tags.filter((tag) => genreOptions.has(tag)),
-    tags: track.tags,
+    tags: track.tags.filter((tag) => !genreOptions.has(tag)),
     credits: track.credits.map(toTrackCreditRequest),
     releaseAppearances: track.releaseAppearances
       .filter((appearance) => appearance.releaseId)
@@ -1624,6 +1624,13 @@ function parseTrackPosition(position: string, fallback?: number) {
   return parsed
 }
 
+function isEmptyVersionNote(note: string) {
+  return (
+    note === 'No version relation recorded' ||
+    note === 'No version note recorded'
+  )
+}
+
 function toReleaseLabelRequest(label: ReleaseLabel) {
   return {
     labelId: label.labelId,
@@ -1805,7 +1812,7 @@ function creditRoleLabel(role: string) {
     engineer: 'Engineer',
   }
 
-  return labels[role] ?? role
+  return toCreditRole(labels[role] ?? role)
 }
 
 function toCreditRoleCode(role: string) {
