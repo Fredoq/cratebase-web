@@ -1225,7 +1225,17 @@
   cursor: pointer;
   font-size: 12px;
   font-weight: 700;
+  letter-spacing: 0;
   padding: 0 10px;
+  text-transform: none;
+}
+
+.manual-entry-grid .track-artist-chip span {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .track-artist-chip.is-selected,
@@ -1462,6 +1472,34 @@
   width: auto;
 }
 
+.releases-table th:nth-child(1) {
+  width: 24%;
+}
+
+.releases-table th:nth-child(2) {
+  width: 15%;
+}
+
+.releases-table th:nth-child(3) {
+  width: 7%;
+}
+
+.releases-table th:nth-child(4) {
+  width: 15%;
+}
+
+.releases-table th:nth-child(5) {
+  width: 13%;
+}
+
+.releases-table th:nth-child(6) {
+  width: 12%;
+}
+
+.releases-table th:nth-child(7) {
+  width: 14%;
+}
+
 .artists-table th:nth-child(1) {
   width: 32%;
 }
@@ -1520,6 +1558,35 @@
   display: inline-flex;
   margin-top: 5px;
   font-size: 12px;
+}
+
+.release-label-stack,
+.release-catalog-stack {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.release-label-name,
+.release-catalog-number,
+.release-table-empty {
+  overflow-wrap: anywhere;
+}
+
+.release-label-name {
+  color: var(--color-text);
+}
+
+.release-catalog-number {
+  color: var(--color-heading);
+  font-weight: 720;
+  font-variant-numeric: tabular-nums;
+}
+
+.release-catalog-number-empty,
+.release-table-empty {
+  color: var(--color-muted);
+  font-weight: 560;
 }
 
 .badge-list {
@@ -1657,6 +1724,48 @@
   color: var(--color-text);
   font-size: 13px;
   overflow-wrap: anywhere;
+}
+
+.release-label-metadata-table {
+  display: grid;
+  gap: 6px;
+}
+
+.release-label-metadata-heading,
+.release-label-metadata-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(96px, 0.75fr);
+  gap: 10px;
+  align-items: baseline;
+}
+
+.release-label-metadata-heading {
+  color: var(--color-soft);
+  font-size: 11px;
+  font-weight: 780;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.release-label-metadata-name,
+.release-label-metadata-catalog {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.release-label-metadata-name {
+  color: var(--color-text);
+}
+
+.release-label-metadata-catalog {
+  color: var(--color-heading);
+  font-weight: 720;
+  font-variant-numeric: tabular-nums;
+}
+
+.release-label-metadata-catalog.release-catalog-number-empty {
+  color: var(--color-muted);
+  font-weight: 560;
 }
 
 .detail-link {

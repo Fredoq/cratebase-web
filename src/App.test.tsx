@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
@@ -48,6 +49,10 @@ function emptyCatalogListResponse() {
 
 function emptyCatalogLoadResponses() {
   return Array.from({ length: 8 }, emptyCatalogListResponse)
+}
+
+function readAppCss() {
+  return readFileSync('src/App.css', 'utf8')
 }
 
 describe('App', () => {
@@ -310,10 +315,10 @@ describe('App', () => {
     render(<App />)
 
     expect(
-      await screen.findByRole('heading', { name: 'Catalog API unavailable' }),
+      await screen.findByRole('heading', { name: 'Catalog unavailable' }),
     ).toBeInTheDocument()
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'Catalog API request failed. Try again.',
+      'Catalog request failed. Try again.',
     )
     expect(screen.getByRole('button', { name: 'Retry' })).toBeEnabled()
   })
@@ -371,7 +376,7 @@ describe('App', () => {
     await user.click(within(form).getByRole('button', { name: 'Add record' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Catalog API request failed. Try again.',
+      'Catalog request failed. Try again.',
     )
     expect(screen.getByRole('heading', { name: 'Artists' })).toBeInTheDocument()
 
@@ -480,7 +485,7 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Add entry' }))
 
     expect(screen.getByRole('status')).toHaveTextContent(
-      'Add entry is not connected to a production API yet.',
+      'Add entry is not available yet.',
     )
     expect(screen.getByRole('heading', { name: 'Catalog' })).toBeInTheDocument()
   })
@@ -1678,6 +1683,135 @@ describe('App', () => {
     expect(within(detailPanel).getByText('Digital library')).toBeInTheDocument()
   })
 
+  it('does not show technical API source notes in release detail', () => {
+    window.history.pushState({}, '', '/releases?release=api-source-release')
+    const technicalApiNote = [
+      'Release loaded from the authenticated',
+      'collection',
+      'API.',
+    ].join(' ')
+    seedCatalogForTests({
+      artists: [],
+      releases: [
+        {
+          id: 'api-source-release',
+          title: 'API Source Release',
+          artist: 'Source Artist',
+          type: 'EP',
+          year: '2026',
+          label: 'Source Label',
+          labels: [
+            {
+              name: 'Source Label',
+              catalogNumber: 'SOURCE-1',
+              hasNoCatalogNumber: false,
+            },
+          ],
+          genres: ['Electronic'],
+          tags: [],
+          releaseNotes: technicalApiNote,
+          ownedCopies: [],
+        },
+      ],
+      tracks: [],
+      ownedItems: [],
+      relations: [],
+      playlists: [],
+    })
+
+    render(<App />)
+
+    const detailPanel = screen.getByRole('complementary', {
+      name: 'API Source Release',
+    })
+
+    expect(
+      within(detailPanel).queryByText(technicalApiNote),
+    ).not.toBeInTheDocument()
+    expect(
+      within(detailPanel).getByRole('heading', { name: 'Release metadata' }),
+    ).toBeInTheDocument()
+  })
+
+  it('sorts release detail tracks by their release track number', () => {
+    window.history.pushState({}, '', '/releases?release=ordered-release')
+    const release = {
+      id: 'ordered-release',
+      title: 'Ordered Release',
+      artist: 'Order Artist',
+      type: 'EP' as const,
+      year: '2026',
+      label: 'Order Label',
+      labels: [
+        {
+          name: 'Order Label',
+          catalogNumber: 'ORDER-1',
+          hasNoCatalogNumber: false,
+        },
+      ],
+      genres: ['Electronic'],
+      tags: [],
+      releaseNotes: 'Release used to verify track ordering.',
+      ownedCopies: [],
+    }
+    const releaseTrack = (trackNumber: string, title: string) => ({
+      ...trackRecords[0],
+      id: `ordered-release-track-${trackNumber}`,
+      title,
+      artist: 'Order Artist',
+      release: {
+        id: release.id,
+        title: release.title,
+        artist: release.artist,
+        year: release.year,
+        label: release.label,
+      },
+      trackNumber,
+      duration: 'Unknown duration',
+      releaseAppearances: [
+        {
+          releaseId: release.id,
+          releaseTitle: release.title,
+          releaseArtist: release.artist,
+          year: release.year,
+          label: release.label,
+          position: trackNumber,
+          duration: 'Unknown duration',
+          versionNote: 'No version relation recorded',
+        },
+      ],
+    })
+    seedCatalogForTests({
+      artists: [],
+      releases: [release],
+      tracks: [
+        releaseTrack('4', 'Track Four'),
+        releaseTrack('3', 'Track Three'),
+        releaseTrack('1', 'Track One'),
+        releaseTrack('2', 'Track Two'),
+      ],
+      ownedItems: [],
+      relations: [],
+      playlists: [],
+    })
+
+    render(<App />)
+
+    const detailPanel = screen.getByRole('complementary', {
+      name: 'Ordered Release',
+    })
+    const trackLinks = within(
+      detailSection(detailPanel, 'Tracks'),
+    ).getAllByRole('link')
+
+    expect(trackLinks.map((link) => link.textContent)).toEqual([
+      'Track One',
+      'Track Two',
+      'Track Three',
+      'Track Four',
+    ])
+  })
+
   it('selects a release from the release query parameter', () => {
     window.history.pushState({}, '', '/releases?release=blue-monday')
 
@@ -2750,12 +2884,22 @@ describe('App', () => {
     const detailPanel = screen.getByRole('complementary', {
       name: 'Catalog Logic',
     })
+    const releaseRow = screen.getByRole('row', { name: /catalog logic/i })
+    const metadata = detailSection(detailPanel, 'Release metadata')
 
     expect(within(detailPanel).getAllByText('Autechre').length).toBeGreaterThan(
       0,
     )
     expect(within(detailPanel).getByText('2024')).toBeInTheDocument()
-    expect(within(detailPanel).getByText('Warp WARP123')).toBeInTheDocument()
+    expect(
+      screen.getByRole('columnheader', { name: 'Catalog #' }),
+    ).toBeInTheDocument()
+    expect(within(releaseRow).getByText('Warp')).toBeInTheDocument()
+    expect(within(releaseRow).getByText('WARP123')).toBeInTheDocument()
+    expect(within(metadata).getByText('Warp')).toBeInTheDocument()
+    expect(within(metadata).getByText('Catalog number')).toBeInTheDocument()
+    expect(within(metadata).getByText('WARP123')).toBeInTheDocument()
+    expect(within(metadata).queryByText('Warp WARP123')).not.toBeInTheDocument()
     expect(within(detailPanel).getByText('IDM')).toBeInTheDocument()
     expect(within(detailPanel).getByText('private shelf')).toBeInTheDocument()
     expect(
@@ -2860,12 +3004,17 @@ describe('App', () => {
     const detailPanel = screen.getByRole('complementary', {
       name: 'Two Label Archive',
     })
+    const metadata = detailSection(detailPanel, 'Release metadata')
 
+    expect(within(metadata).getByText('First Label')).toBeInTheDocument()
+    expect(within(metadata).getByText('FIRST-1')).toBeInTheDocument()
+    expect(within(metadata).getByText('Second Label')).toBeInTheDocument()
+    expect(within(metadata).getByText('No catalog number')).toBeInTheDocument()
     expect(
-      within(detailPanel).getByText(
+      within(metadata).queryByText(
         'First Label FIRST-1, Second Label (No catalog number)',
       ),
-    ).toBeInTheDocument()
+    ).not.toBeInTheDocument()
   })
 
   it('lets Not On Label disable release label rows', async () => {
@@ -2948,6 +3097,15 @@ describe('App', () => {
       within(form).getByRole('button', { name: 'Use custom artists' }),
     )
 
+    const autechreTrackArtistOption = within(form)
+      .getByLabelText('Use Autechre on track')
+      .closest('label')
+      ?.querySelector('span')
+
+    expect(autechreTrackArtistOption).not.toBeNull()
+    expect(readAppCss()).toMatch(
+      /\.manual-entry-grid \.track-artist-chip span\s*{[^}]*text-transform:\s*none;/s,
+    )
     expect(within(form).getByLabelText('Use Autechre on track')).toBeChecked()
     expect(
       within(form).getByLabelText('Use Boards of Canada on track'),
@@ -3298,12 +3456,12 @@ describe('App', () => {
     }
   })
 
-  it('shows read-only settings defaults until a settings API exists', () => {
+  it('shows read-only settings defaults until settings editing exists', () => {
     window.history.pushState({}, '', '/settings')
     render(<App />)
 
     expect(
-      screen.getByRole('heading', { name: 'Settings API pending' }),
+      screen.getByRole('heading', { name: 'Collection settings pending' }),
     ).toBeInTheDocument()
     expect(
       screen.getByRole('row', { name: /default media type/i }),

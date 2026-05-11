@@ -1170,7 +1170,7 @@ function toArtistRecord(
       scope: credit.targetType === 'release' ? 'Release' : 'Track',
     })),
     tags: [],
-    summary: 'Catalog artist loaded from the authenticated collection API.',
+    summary: '',
   }
 }
 
@@ -1225,7 +1225,7 @@ function toReleaseRecord(
     notOnLabel: Boolean(release.notOnLabel),
     genres: release.genres,
     tags: release.tags,
-    releaseNotes: 'Release loaded from the authenticated collection API.',
+    releaseNotes: '',
     ownedCopies: ownedItems
       .filter(
         (item) => item.targetType === 'release' && item.targetId === release.id,
@@ -1236,7 +1236,7 @@ function toReleaseRecord(
         status: ownedCopyStatusLabel(item.status),
         storage: item.storageLocation ?? 'No storage recorded',
         condition: conditionLabel(item.condition),
-        note: 'Owned item linked to this release.',
+        note: '',
       })),
   }
 }
@@ -1341,7 +1341,7 @@ function toTrackRecord(
     trackNumber,
     duration: trackDuration,
     versionHint,
-    relationHint: 'Track loaded from the authenticated collection API.',
+    relationHint: '',
     tags: [...track.genres, ...track.tags],
     credits: trackCredits,
     releaseAppearances,
@@ -1389,8 +1389,8 @@ function toOwnedItemRecord(
     statusTone: statusToneFor(status),
     storage: item.storageLocation ?? 'No storage recorded',
     condition: conditionLabel(item.condition),
-    acquisition: 'Collection API',
-    copyNotes: 'Owned item loaded from the authenticated collection API.',
+    acquisition: 'Not recorded',
+    copyNotes: '',
     linkedType: item.targetType === 'track' ? 'Track' : 'Release',
     fileFormat:
       item.medium.format && !isManualDigitalPlaceholder(item.medium)
@@ -1456,8 +1456,8 @@ function toTrackRelationRecord(
     targetType: 'Track',
     relationType: type,
     role: type,
-    context: 'Track relation loaded from the authenticated collection API.',
-    evidence: 'Track relation loaded from the authenticated collection API.',
+    context: '',
+    evidence: '',
     linkedEntity: target?.title ?? 'Unknown track',
     linkedEntityLink: { kind: 'track', id: relation.targetTrackId },
     linkedEntityType: 'Track',
@@ -1471,7 +1471,7 @@ function toTrackCredit(credit: CreditDto): TrackCredit {
     artistId: credit.contributorArtistId,
     role: creditRoleLabel(credit.role),
     artist: credit.contributorName,
-    scope: 'Track credit from the authenticated collection API.',
+    scope: 'Track credit.',
   }
 }
 
@@ -1480,7 +1480,7 @@ function toTrackCreditFromTrackCreditDto(credit: TrackCreditDto): TrackCredit {
     artistId: credit.artistId,
     role: creditRoleLabel(credit.role),
     artist: credit.artistName,
-    scope: 'Track credit from the authenticated collection API.',
+    scope: 'Track credit.',
   }
 }
 
@@ -1491,7 +1491,7 @@ function toTrackCreditFromReleaseCredit(
     artistId: credit.artistId,
     role: creditRoleLabel(credit.role),
     artist: credit.artistName,
-    scope: 'Tracklist credit from the release API.',
+    scope: 'Tracklist credit.',
   }
 }
 
@@ -1883,7 +1883,7 @@ function relationPeriodText(relation: ArtistRelationDto) {
     return `Recorded until ${relation.endYear}.`
   }
 
-  return 'Relation loaded from the authenticated collection API.'
+  return ''
 }
 
 function formatDuration(durationSeconds: number | null | undefined) {

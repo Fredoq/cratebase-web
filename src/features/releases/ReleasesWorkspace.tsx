@@ -152,7 +152,7 @@ export function ReleasesWorkspace({
       <div className="catalog-main">
         <SearchField
           label="Search releases"
-          placeholder="Title, artist, label, year, medium or ownership status"
+          placeholder="Title, artist, label, catalog number, year, medium or ownership status"
           query={query}
           onQueryChange={setQuery}
         />
@@ -596,8 +596,7 @@ function ReleaseEntryForm({
               status: copyStatus || 'Owned',
               storage: firstCopy?.storage ?? 'No storage recorded',
               condition: firstCopy?.condition ?? 'No condition recorded',
-              note:
-                firstCopy?.note ?? 'Manual owned-copy hint from release entry.',
+              note: firstCopy?.note ?? '',
             },
             ...(initialRelease?.ownedCopies.slice(1) ?? []),
           ]
@@ -616,7 +615,7 @@ function ReleaseEntryForm({
       notOnLabel,
       genres,
       tags: splitCommaList(tags),
-      releaseNotes: 'Manual release entry with incomplete metadata.',
+      releaseNotes: '',
       ownedCopies,
     }
     const createdTracks = draftTracks
@@ -666,16 +665,13 @@ function ReleaseEntryForm({
           trackNumber: String(index + 1),
           duration: trackDuration,
           versionHint: textOrFallback(note, emptyVersionNote),
-          relationHint: textOrFallback(
-            note,
-            'Manual track created with release entry.',
-          ),
+          relationHint: note,
           tags: ['manual entry'],
           credits: effectiveTrackCredits.map((credit) => ({
             artistId: credit.artistId,
             role: credit.role,
             artist: credit.artist,
-            scope: 'Tracklist credit from release entry.',
+            scope: '',
           })),
           releaseAppearances: [
             {
@@ -1835,20 +1831,111 @@ function releaseSearchText(release: ReleaseRecord) {
 }
 
 function releaseLabelNames(release: ReleaseRecord) {
+  return releaseLabelEntries(release).map((label) => label.name)
+}
+
+function releaseHasLabel(release: ReleaseRecord, label: string) {
+  return releaseLabelNames(release).includes(label)
+}
+
+function releaseLabelEntries(release: ReleaseRecord): ReleaseLabel[] {
   const labels =
     release.labels
-      ?.map((label) => label.name)
-      .filter((label) => label.trim().length > 0) ?? []
+      ?.map((label) => ({
+        ...label,
+        catalogNumber: label.catalogNumber?.trim() || undefined,
+        name: label.name.trim(),
+      }))
+      .filter((label) => label.name.length > 0) ?? []
 
   if (labels.length > 0) {
     return labels
   }
 
-  return release.label === 'Unknown label' ? [] : [release.label]
+  if (release.label === 'Unknown label') {
+    return []
+  }
+
+  return [
+    {
+      name: release.label,
+      catalogNumber: undefined,
+      hasNoCatalogNumber: false,
+    },
+  ]
 }
 
-function releaseHasLabel(release: ReleaseRecord, label: string) {
-  return releaseLabelNames(release).includes(label)
+function releaseCatalogNumberDisplay(label: ReleaseLabel) {
+  if (label.catalogNumber) {
+    return label.catalogNumber
+  }
+
+  return label.hasNoCatalogNumber ? 'No catalog number' : 'Not recorded'
+}
+
+const trackPositionCollator = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: 'base',
+})
+
+function releaseTrackPosition(track: TrackRecord, release: ReleaseRecord) {
+  const releaseAppearance = track.releaseAppearances.find(
+    (appearance) => appearance.releaseId === release.id,
+  )
+  const appearancePosition = releaseAppearance?.position.trim()
+
+  if (appearancePosition) {
+    return appearancePosition
+  }
+
+  const primaryReleasePosition =
+    track.release.id === release.id ? track.trackNumber.trim() : ''
+
+  return primaryReleasePosition || track.trackNumber.trim()
+}
+
+function sortReleaseDetailTracks(
+  tracks: TrackRecord[],
+  release: ReleaseRecord,
+) {
+  return [...tracks].sort((firstTrack, secondTrack) => {
+    const firstPosition = releaseTrackPosition(firstTrack, release)
+    const secondPosition = releaseTrackPosition(secondTrack, release)
+
+    if (firstPosition && secondPosition) {
+      const positionOrder = trackPositionCollator.compare(
+        firstPosition,
+        secondPosition,
+      )
+
+      if (positionOrder !== 0) {
+        return positionOrder
+      }
+    } else if (firstPosition) {
+      return -1
+    } else if (secondPosition) {
+      return 1
+    }
+
+    return trackPositionCollator.compare(firstTrack.title, secondTrack.title)
+  })
+}
+
+function releaseDetailSummary(release: ReleaseRecord) {
+  const summary = release.releaseNotes.trim()
+
+  return isTechnicalApiSummary(summary) ? '' : summary
+}
+
+function isTechnicalApiSummary(summary: string) {
+  const normalized = summary.toLowerCase()
+
+  return (
+    normalized.includes('loaded') &&
+    normalized.includes('authenticated') &&
+    normalized.includes('collection') &&
+    normalized.includes('api')
+  )
 }
 
 type SearchFieldProps = {
@@ -1904,13 +1991,14 @@ function ReleaseTable({
       </div>
 
       <div className="table-scroll">
-        <table className="catalog-table workspace-table">
+        <table className="catalog-table workspace-table releases-table">
           <thead>
             <tr>
               <th scope="col">Release</th>
               <th scope="col">Artist</th>
               <th scope="col">Year</th>
               <th scope="col">Label</th>
+              <th scope="col">Catalog #</th>
               <th scope="col">Media</th>
               <th scope="col">Ownership</th>
             </tr>
@@ -1936,7 +2024,12 @@ function ReleaseTable({
                 </th>
                 <td data-label="Artist">{release.artist}</td>
                 <td data-label="Year">{release.year}</td>
-                <td data-label="Label">{release.label}</td>
+                <td data-label="Label">
+                  <ReleaseLabelsCell release={release} />
+                </td>
+                <td data-label="Catalog #">
+                  <ReleaseCatalogNumbersCell release={release} />
+                </td>
                 <td data-label="Media">
                   <BadgeList
                     values={[
@@ -1963,6 +2056,56 @@ function ReleaseTable({
         </table>
       </div>
     </section>
+  )
+}
+
+function ReleaseLabelsCell({ release }: { release: ReleaseRecord }) {
+  const labels = releaseLabelEntries(release)
+
+  if (labels.length === 0) {
+    return <span className="release-table-empty">Unknown label</span>
+  }
+
+  return (
+    <span className="release-label-stack">
+      {labels.map((label, index) => (
+        <span
+          className="release-label-name"
+          key={`${label.name}-${label.catalogNumber ?? index}`}
+        >
+          {label.name}
+        </span>
+      ))}
+    </span>
+  )
+}
+
+function ReleaseCatalogNumbersCell({ release }: { release: ReleaseRecord }) {
+  const labels = releaseLabelEntries(release)
+
+  if (labels.length === 0) {
+    return <span className="release-table-empty">Not recorded</span>
+  }
+
+  return (
+    <span className="release-catalog-stack">
+      {labels.map((label, index) => {
+        const catalogNumber = releaseCatalogNumberDisplay(label)
+
+        return (
+          <span
+            className={
+              label.catalogNumber
+                ? 'release-catalog-number'
+                : 'release-catalog-number release-catalog-number-empty'
+            }
+            key={`${label.name}-${catalogNumber}-${index}`}
+          >
+            {catalogNumber}
+          </span>
+        )
+      })}
+    </span>
   )
 }
 
@@ -2002,6 +2145,11 @@ function ReleaseDetail({
   const linkedPlaylists = playlists.filter((playlist) =>
     playlistTouchesRelease(playlist, release),
   )
+  const sortedTracks = useMemo(
+    () => sortReleaseDetailTracks(tracks, release),
+    [release, tracks],
+  )
+  const summary = releaseDetailSummary(release)
 
   return (
     <aside
@@ -2036,7 +2184,7 @@ function ReleaseDetail({
         ) : null}
       </div>
 
-      <p className="detail-summary">{release.releaseNotes}</p>
+      {summary ? <p className="detail-summary">{summary}</p> : null}
 
       <section
         className="detail-section"
@@ -2052,10 +2200,7 @@ function ReleaseDetail({
             <dt>Year</dt>
             <dd>{release.year}</dd>
           </div>
-          <div>
-            <dt>Label</dt>
-            <dd>{release.label}</dd>
-          </div>
+          <ReleaseLabelMetadata release={release} />
           <div>
             <dt>Genres and tags</dt>
             <dd>
@@ -2082,21 +2227,27 @@ function ReleaseDetail({
         aria-labelledby="release-tracks-title"
       >
         <h3 id="release-tracks-title">Tracks</h3>
-        {tracks.length > 0 ? (
+        {sortedTracks.length > 0 ? (
           <div className="relation-list">
             <p>
-              {tracks.length} {tracks.length === 1 ? 'track' : 'tracks'}
+              {sortedTracks.length}{' '}
+              {sortedTracks.length === 1 ? 'track' : 'tracks'}
             </p>
-            {tracks.map((track) => (
-              <article key={track.id}>
-                <a className="detail-link" href={trackHref(track.id)}>
-                  {track.title}
-                </a>
-                <p>
-                  {track.trackNumber} · {track.artist} · {track.duration}
-                </p>
-              </article>
-            ))}
+            {sortedTracks.map((track) => {
+              const position = releaseTrackPosition(track, release)
+
+              return (
+                <article key={track.id}>
+                  <a className="detail-link" href={trackHref(track.id)}>
+                    {track.title}
+                  </a>
+                  <p>
+                    {position || 'Unnumbered'} · {track.artist} ·{' '}
+                    {track.duration}
+                  </p>
+                </article>
+              )
+            })}
           </div>
         ) : (
           <p>No tracks linked yet.</p>
@@ -2166,6 +2317,54 @@ function ReleaseDetail({
   )
 }
 
+function ReleaseLabelMetadata({ release }: { release: ReleaseRecord }) {
+  const labels = releaseLabelEntries(release)
+
+  return (
+    <div>
+      <dt className="visually-hidden">Labels</dt>
+      <dd>
+        {labels.length === 0 ? (
+          <span className="release-table-empty">Unknown label</span>
+        ) : (
+          <span
+            className="release-label-metadata-table"
+            aria-label="Labels and catalog numbers"
+          >
+            <span className="release-label-metadata-heading" aria-hidden="true">
+              <span>Label</span>
+              <span>Catalog number</span>
+            </span>
+            {labels.map((label, index) => {
+              const catalogNumber = releaseCatalogNumberDisplay(label)
+
+              return (
+                <span
+                  className="release-label-metadata-row"
+                  key={`${label.name}-${catalogNumber}-${index}`}
+                >
+                  <span className="release-label-metadata-name">
+                    {label.name}
+                  </span>
+                  <span
+                    className={
+                      label.catalogNumber
+                        ? 'release-label-metadata-catalog'
+                        : 'release-label-metadata-catalog release-catalog-number-empty'
+                    }
+                  >
+                    {catalogNumber}
+                  </span>
+                </span>
+              )
+            })}
+          </span>
+        )}
+      </dd>
+    </div>
+  )
+}
+
 function trackHref(trackId: string) {
   return `/tracks?track=${encodeURIComponent(trackId)}`
 }
@@ -2191,7 +2390,7 @@ function OwnedCopyCard({ copy }: OwnedCopyCardProps) {
           <dd>{copy.condition}</dd>
         </div>
       </dl>
-      <p>{copy.note}</p>
+      {copy.note ? <p>{copy.note}</p> : null}
     </article>
   )
 }

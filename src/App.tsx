@@ -246,14 +246,12 @@ function AuthenticatedApp({
       return
     }
 
-    setActionStatus(
-      `${activeRoute.actionLabel} is not connected to a production API yet.`,
-    )
+    setActionStatus(`${activeRoute.actionLabel} is not available yet.`)
   }
 
   const workspace =
     catalogStatus === 'loading' ? (
-      <CatalogStatusPanel message="Loading catalog from the API…" />
+      <CatalogStatusPanel message="Loading catalog…" />
     ) : catalogStatus === 'error' ? (
       <CatalogErrorPanel
         message={catalogError ?? 'Catalog data could not be loaded.'}
@@ -316,7 +314,7 @@ function AuthenticatedApp({
             },
             onAddPlaylist: () => {
               setActionStatus(
-                'Playlist persistence is not available in the API yet.',
+                'Playlist saving is not available yet.',
               )
             },
             onUpdateArtist: (artist) => {
@@ -348,7 +346,7 @@ function AuthenticatedApp({
             },
             onUpdatePlaylist: () => {
               setActionStatus(
-                'Playlist persistence is not available in the API yet.',
+                'Playlist saving is not available yet.',
               )
             },
             onDeleteArtist: (artistId) => {
@@ -391,7 +389,7 @@ function AuthenticatedApp({
             },
             onDeletePlaylist: () => {
               setActionStatus(
-                'Playlist persistence is not available in the API yet.',
+                'Playlist saving is not available yet.',
               )
             },
           },
@@ -429,7 +427,7 @@ function CatalogStatusPanel({ message }: { message: string }) {
     <section className="panel section-panel" aria-live="polite">
       <div className="panel-heading">
         <div>
-          <h2>Catalog API</h2>
+          <h2>Catalog</h2>
           <p role="status">{message}</p>
         </div>
       </div>
@@ -448,7 +446,7 @@ function CatalogErrorPanel({
     <section className="panel section-panel" aria-live="polite">
       <div className="panel-heading">
         <div>
-          <h2>Catalog API unavailable</h2>
+              <h2>Catalog unavailable</h2>
           <p role="alert">{message}</p>
         </div>
       </div>
@@ -500,7 +498,7 @@ function catalogErrorMessage(error: unknown) {
       return 'Session expired. Sign in again.'
     }
 
-    return 'Catalog API request failed. Try again.'
+    return 'Catalog request failed. Try again.'
   }
 
   if (error instanceof Error) {

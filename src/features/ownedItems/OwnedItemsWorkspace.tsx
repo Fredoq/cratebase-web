@@ -605,7 +605,7 @@ function OwnedItemDetail({
       </div>
 
       <StatusBadge item={item}>{item.status}</StatusBadge>
-      <p className="detail-summary">{item.copyNotes}</p>
+      {item.copyNotes ? <p className="detail-summary">{item.copyNotes}</p> : null}
 
       <section className="detail-section" aria-labelledby="owned-linked-title">
         <h3 id="owned-linked-title">Linked catalog item</h3>

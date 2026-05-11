@@ -74,10 +74,17 @@ describe('catalog API adapter', () => {
               genres: ['IDM'],
               tags: ['album version'],
             },
+            {
+              id: '00000000-0000-7000-8000-000000000007',
+              title: 'Polynomial-C Alternate',
+              durationSeconds: 284,
+              genres: ['IDM'],
+              tags: ['version candidate'],
+            },
           ],
           limit: 100,
           offset: 0,
-          total: 1,
+          total: 2,
         }),
       )
       .mockResolvedValueOnce(
@@ -115,17 +122,37 @@ describe('catalog API adapter', () => {
               targetId: '00000000-0000-7000-8000-000000000003',
               role: 'mainArtist',
             },
+            {
+              id: '00000000-0000-7000-8000-000000000008',
+              contributorArtistId: '00000000-0000-7000-8000-000000000001',
+              contributorName: 'Aphex Twin',
+              targetType: 'track',
+              targetId: '00000000-0000-7000-8000-000000000004',
+              role: 'mainArtist',
+            },
           ],
           limit: 100,
           offset: 0,
-          total: 1,
+          total: 2,
         }),
       )
       .mockResolvedValueOnce(
         jsonResponse({ items: [], limit: 100, offset: 0, total: 0 }),
       )
       .mockResolvedValueOnce(
-        jsonResponse({ items: [], limit: 100, offset: 0, total: 0 }),
+        jsonResponse({
+          items: [
+            {
+              id: '00000000-0000-7000-8000-000000000009',
+              sourceTrackId: '00000000-0000-7000-8000-000000000004',
+              targetTrackId: '00000000-0000-7000-8000-000000000007',
+              type: 'versionOf',
+            },
+          ],
+          limit: 100,
+          offset: 0,
+          total: 1,
+        }),
       )
     vi.stubGlobal('fetch', fetchMock)
 
@@ -150,6 +177,9 @@ describe('catalog API adapter', () => {
       releaseTitle: 'Selected Ambient Works 85-92',
       status: 'Owned',
     })
+    expect(JSON.stringify(catalog)).not.toMatch(
+      /authenticated collection api|collection api|release api/i,
+    )
   })
 
   it('keeps manual digital owned-copy placeholders from displaying an inferred file format', async () => {
