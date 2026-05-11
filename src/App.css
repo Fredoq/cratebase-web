@@ -867,12 +867,17 @@
 
 .release-track-main-grid {
   display: grid;
-  grid-template-columns: minmax(260px, 1.3fr) minmax(280px, 0.8fr) minmax(
-      260px,
+  grid-template-columns: minmax(0, 1.3fr) minmax(232px, 0.8fr) minmax(
+      0,
       0.9fr
     );
   align-items: end;
   gap: 10px;
+  min-width: 0;
+}
+
+.release-track-title-field,
+.release-track-version-field {
   min-width: 0;
 }
 
