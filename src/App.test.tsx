@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs'
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
@@ -50,10 +49,6 @@ function emptyCatalogListResponse() {
 
 function emptyCatalogLoadResponses() {
   return Array.from({ length: 8 }, emptyCatalogListResponse)
-}
-
-function readAppCss() {
-  return readFileSync('src/App.css', 'utf8')
 }
 
 describe('App', () => {
@@ -3302,10 +3297,13 @@ describe('App', () => {
       .closest('label')
       ?.querySelector('span')
 
-    expect(autechreTrackArtistOption).not.toBeNull()
-    expect(readAppCss()).toMatch(
-      /\.manual-entry-grid \.track-artist-chip span\s*{[^}]*text-transform:\s*none;/s,
-    )
+    if (!(autechreTrackArtistOption instanceof HTMLElement)) {
+      throw new Error('Expected a rendered Autechre track artist chip label')
+    }
+
+    expect(
+      getComputedStyle(autechreTrackArtistOption).textTransform || 'none',
+    ).toBe('none')
     expect(within(form).getByLabelText('Use Autechre on track')).toBeChecked()
     expect(
       within(form).getByLabelText('Use Boards of Canada on track'),
