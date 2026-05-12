@@ -1779,7 +1779,10 @@ function isUuid(value: string) {
 
 function parseTrackPosition(position: string, fallback?: number) {
   const trimmed = position.trim()
-  if (trimmed.length === 0 && fallback !== undefined) {
+  if (
+    fallback !== undefined &&
+    (trimmed.length === 0 || trimmed === 'Unnumbered')
+  ) {
     return fallback
   }
 

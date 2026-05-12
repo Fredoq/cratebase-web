@@ -1838,7 +1838,7 @@ describe('App', () => {
       ],
       genres: ['Electronic'],
       tags: [],
-      releaseNotes: '',
+      releaseNotes: 'Keep these release notes.',
       ownedCopies: [],
     }
     const releaseTrack = (trackNumber: string, title: string) => ({
@@ -1901,7 +1901,11 @@ describe('App', () => {
     )
     await user.click(screen.getByRole('button', { name: 'Save record' }))
 
-    const savedTracks = getInitialCatalogStateForTests()?.tracks ?? []
+    const savedCatalog = getInitialCatalogStateForTests()
+    expect(savedCatalog?.releases[0].releaseNotes).toBe(
+      'Keep these release notes.',
+    )
+    const savedTracks = savedCatalog?.tracks ?? []
     expect(
       savedTracks.map((track) => ({
         title: track.title,

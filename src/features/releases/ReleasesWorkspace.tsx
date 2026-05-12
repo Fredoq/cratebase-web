@@ -382,6 +382,7 @@ function ReleaseEntryForm({
     firstCopy?.status ?? '',
   )
   const [tags, setTags] = useState(initialRelease?.tags.join(', ') ?? '')
+  const [releaseNotes] = useState(initialRelease?.releaseNotes ?? '')
   const initialDraftTracks = useMemo(
     () =>
       initialRelease
@@ -644,7 +645,7 @@ function ReleaseEntryForm({
       notOnLabel,
       genres,
       tags: splitCommaList(tags),
-      releaseNotes: '',
+      releaseNotes,
       ownedCopies,
     }
     const submittedTracks = draftTracks

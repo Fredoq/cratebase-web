@@ -567,6 +567,84 @@ describe('catalog API adapter', () => {
     expect(tracklistRow).not.toHaveProperty('artistCredits')
   })
 
+  it('uses row order fallback for unnumbered release tracklist rows', async () => {
+    const fetchMock = vi.fn<Window['fetch']>().mockResolvedValue(
+      jsonResponse({
+        id: '00000000-0000-7000-8000-000000000010',
+        title: 'Unnumbered Archive',
+        type: 'single',
+        year: 1983,
+        genres: ['Synth-pop'],
+        tags: [],
+        labels: [],
+        tracklist: [],
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await createRelease(
+      {
+        id: '00000000-0000-7000-8000-000000000010',
+        title: 'Unnumbered Archive',
+        artist: 'New Order',
+        artistCredits: [
+          {
+            artistId: '00000000-0000-7000-8000-000000000001',
+            artist: 'New Order',
+            role: 'Main artist',
+          },
+        ],
+        type: 'Single',
+        year: '1983',
+        label: 'Factory',
+        labels: [],
+        genres: ['Synth-pop'],
+        tags: [],
+        releaseNotes: '',
+        ownedCopies: [],
+      },
+      [
+        {
+          id: '00000000-0000-7000-8000-000000000020',
+          title: 'Blue Monday',
+          artist: 'New Order',
+          artistId: '00000000-0000-7000-8000-000000000001',
+          release: {
+            id: '00000000-0000-7000-8000-000000000010',
+            title: 'Unnumbered Archive',
+            artist: 'New Order',
+            year: '1983',
+            label: 'Factory',
+          },
+          trackNumber: 'Unnumbered',
+          duration: '7:29',
+          versionHint: 'No version relation recorded',
+          relationHint: '',
+          tags: [],
+          credits: [],
+          releaseAppearances: [],
+          relations: [],
+          fileMetadata: {
+            format: 'None recorded',
+            path: 'No file linked',
+            bitrate: 'Not recorded',
+            sampleRate: 'Not recorded',
+            channels: 'Not recorded',
+            importedAt: 'Manual entry',
+            checksum: 'Not recorded',
+          },
+        },
+      ],
+    )
+
+    const payload = releaseRequestPayload(fetchMock.mock.calls[0][1])
+
+    expect(payload.tracklist?.[0]).toMatchObject({
+      trackId: '00000000-0000-7000-8000-000000000020',
+      position: 1,
+    })
+  })
+
   it('sends desired release tracklists when updating releases', async () => {
     const fetchMock = vi.fn<Window['fetch']>().mockResolvedValue(
       jsonResponse({
