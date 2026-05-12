@@ -1017,7 +1017,10 @@ function ReleaseEntryForm({
   }
 
   function addDraftTrack() {
-    const nextTrack = createDraftTrack(nextDraftTrackPosition(draftTracks))
+    const nextPosition = initialRelease
+      ? nextDraftTrackPosition(draftTracks)
+      : draftTracks.length + 1
+    const nextTrack = createDraftTrack(nextPosition)
 
     setDraftTracks((currentTracks) => [...currentTracks, nextTrack])
     setSelectedDraftTrackId(nextTrack.id)
@@ -1025,7 +1028,10 @@ function ReleaseEntryForm({
 
   function removeDraftTrack(trackId: string) {
     const removedIndex = draftTracks.findIndex((track) => track.id === trackId)
-    const nextTracks = draftTracks.filter((track) => track.id !== trackId)
+    const retainedTracks = draftTracks.filter((track) => track.id !== trackId)
+    const nextTracks = initialRelease
+      ? retainedTracks
+      : renumberDraftTrackPositions(retainedTracks)
 
     setDraftTracks(nextTracks)
     if (selectedDraftTrackId === trackId) {
@@ -2060,6 +2066,13 @@ function nextDraftTrackPosition(tracks: DraftTrackRow[]) {
   return numericPositions.length > 0
     ? Math.max(...numericPositions) + 1
     : tracks.length + 1
+}
+
+function renumberDraftTrackPositions(tracks: DraftTrackRow[]) {
+  return tracks.map((track, index) => ({
+    ...track,
+    position: String(index + 1),
+  }))
 }
 
 function duplicateDraftExistingTrackIds(tracks: DraftTrackRow[]) {

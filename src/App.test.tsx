@@ -1896,22 +1896,28 @@ describe('App', () => {
     )
     await user.click(screen.getByRole('button', { name: 'Save record' }))
 
-    const savedCatalog = getInitialCatalogStateForTests()
-    expect(savedCatalog?.releases[0].releaseNotes).toBe(
-      'Keep these release notes.',
-    )
-    const savedTracks = savedCatalog?.tracks ?? []
+    const savedPanel = screen.getByRole('complementary', {
+      name: 'Non-contiguous Release',
+    })
     expect(
-      savedTracks.map((track) => ({
-        title: track.title,
-        position: track.releaseAppearances.find(
-          (appearance) => appearance.releaseId === release.id,
-        )?.position,
-      })),
-    ).toEqual([
-      { title: 'Position One', position: '1' },
-      { title: 'Position Four', position: '4' },
-    ])
+      within(savedPanel).getByText('Keep these release notes.'),
+    ).toBeInTheDocument()
+    const savedTrackCards = within(
+      detailSection(savedPanel, 'Tracks'),
+    ).getAllByRole('article')
+    expect(savedTrackCards).toHaveLength(2)
+    expect(
+      within(savedTrackCards[0]).getByRole('link', { name: 'Position One' }),
+    ).toBeInTheDocument()
+    expect(savedTrackCards[0]).toHaveTextContent(
+      '1 · Position Artist · Unknown duration',
+    )
+    expect(
+      within(savedTrackCards[1]).getByRole('link', { name: 'Position Four' }),
+    ).toBeInTheDocument()
+    expect(savedTrackCards[1]).toHaveTextContent(
+      '4 · Position Artist · Unknown duration',
+    )
   })
 
   it('selects a release from the release query parameter', () => {
