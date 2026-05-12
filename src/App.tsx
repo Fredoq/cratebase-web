@@ -313,9 +313,7 @@ function AuthenticatedApp({
               )
             },
             onAddPlaylist: () => {
-              setActionStatus(
-                'Playlist saving is not available yet.',
-              )
+              setActionStatus('Playlist saving is not available yet.')
             },
             onUpdateArtist: (artist) => {
               void runCatalogMutation(
@@ -323,9 +321,9 @@ function AuthenticatedApp({
                 'Artist saved.',
               )
             },
-            onUpdateRelease: (release) => {
+            onUpdateRelease: (release, tracks) => {
               void runCatalogMutation(
-                () => updateRelease(release),
+                () => updateRelease(release, tracks),
                 'Release saved.',
               )
             },
@@ -345,9 +343,7 @@ function AuthenticatedApp({
               )
             },
             onUpdatePlaylist: () => {
-              setActionStatus(
-                'Playlist saving is not available yet.',
-              )
+              setActionStatus('Playlist saving is not available yet.')
             },
             onDeleteArtist: (artistId) => {
               void runCatalogMutation(
@@ -388,9 +384,7 @@ function AuthenticatedApp({
               )
             },
             onDeletePlaylist: () => {
-              setActionStatus(
-                'Playlist saving is not available yet.',
-              )
+              setActionStatus('Playlist saving is not available yet.')
             },
           },
         )}
@@ -446,7 +440,7 @@ function CatalogErrorPanel({
     <section className="panel section-panel" aria-live="polite">
       <div className="panel-heading">
         <div>
-              <h2>Catalog unavailable</h2>
+          <h2>Catalog unavailable</h2>
           <p role="alert">{message}</p>
         </div>
       </div>
@@ -527,7 +521,7 @@ function renderWorkspace(
     onAddRelation: (relation: RelationRecord) => void
     onAddPlaylist: (playlist: PlaylistRecord) => void
     onUpdateArtist: (artist: ArtistRecord) => void
-    onUpdateRelease: (release: ReleaseRecord) => void
+    onUpdateRelease: (release: ReleaseRecord, tracks?: TrackRecord[]) => void
     onUpdateTrack: (track: TrackRecord) => void
     onUpdateOwnedItem: (item: OwnedItemRecord) => void
     onUpdateRelation: (relation: RelationRecord) => void

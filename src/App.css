@@ -867,10 +867,7 @@
 
 .release-track-main-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(232px, 0.8fr) minmax(
-      0,
-      0.9fr
-    );
+  grid-template-columns: minmax(0, 1.3fr) minmax(232px, 0.8fr) minmax(0, 0.9fr);
   align-items: end;
   gap: 10px;
   min-width: 0;
@@ -1072,6 +1069,72 @@
   margin: 0;
   color: var(--color-muted);
   font-size: 12px;
+}
+
+.release-track-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.existing-track-linker {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.existing-track-summary,
+.existing-track-results {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.existing-track-summary {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  padding: 10px;
+}
+
+.existing-track-summary strong,
+.existing-track-results strong {
+  color: var(--color-heading);
+  font-size: 13px;
+}
+
+.existing-track-summary span:not(.badge),
+.existing-track-results span {
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.existing-track-summary .button {
+  justify-self: start;
+}
+
+.existing-track-results button {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.existing-track-results button:hover,
+.existing-track-results button:focus-visible {
+  border-color: var(--color-border-strong);
+  background: var(--color-selected);
 }
 
 .release-track-detail-grid {
