@@ -9,6 +9,7 @@ import {
 } from './features/auth/authApi'
 import {
   clearCatalogForTests,
+  getInitialCatalogStateForTests,
   seedCatalogForTests,
 } from './features/catalog/catalogApi'
 import { buildCatalogEntries } from './features/catalog/catalogGraph'
@@ -1809,6 +1810,108 @@ describe('App', () => {
       'Track Two',
       'Track Three',
       'Track Four',
+    ])
+  })
+
+  it('preserves edited release track positions when saving without tracklist changes', async () => {
+    window.history.pushState({}, '', '/releases?release=non-contiguous-release')
+    const user = userEvent.setup()
+    const release = {
+      id: 'non-contiguous-release',
+      title: 'Non-contiguous Release',
+      artist: 'Position Artist',
+      artistCredits: [
+        {
+          artist: 'Position Artist',
+          role: 'Main artist' as const,
+        },
+      ],
+      type: 'EP' as const,
+      year: '2026',
+      label: 'Position Label',
+      labels: [
+        {
+          name: 'Position Label',
+          catalogNumber: 'POS-1',
+          hasNoCatalogNumber: false,
+        },
+      ],
+      genres: ['Electronic'],
+      tags: [],
+      releaseNotes: '',
+      ownedCopies: [],
+    }
+    const releaseTrack = (trackNumber: string, title: string) => ({
+      ...trackRecords[0],
+      id: `non-contiguous-release-track-${trackNumber}`,
+      title,
+      artist: release.artist,
+      release: {
+        id: release.id,
+        title: release.title,
+        artist: release.artist,
+        year: release.year,
+        label: release.label,
+      },
+      trackNumber,
+      duration: 'Unknown duration',
+      versionHint: 'No version relation recorded',
+      relationHint: '',
+      tags: [],
+      credits: [
+        {
+          artist: release.artist,
+          role: 'Main artist' as const,
+          scope: '',
+        },
+      ],
+      releaseAppearances: [
+        {
+          releaseId: release.id,
+          releaseTitle: release.title,
+          releaseArtist: release.artist,
+          year: release.year,
+          label: release.label,
+          position: trackNumber,
+          duration: 'Unknown duration',
+          versionNote: 'No version relation recorded',
+        },
+      ],
+      relations: [],
+    })
+    seedCatalogForTests({
+      artists: [],
+      releases: [release],
+      tracks: [
+        releaseTrack('1', 'Position One'),
+        releaseTrack('4', 'Position Four'),
+      ],
+      ownedItems: [],
+      relations: [],
+      playlists: [],
+    })
+
+    render(<App />)
+
+    const detailPanel = screen.getByRole('complementary', {
+      name: 'Non-contiguous Release',
+    })
+    await user.click(
+      within(detailPanel).getByRole('button', { name: 'Edit record' }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Save record' }))
+
+    const savedTracks = getInitialCatalogStateForTests()?.tracks ?? []
+    expect(
+      savedTracks.map((track) => ({
+        title: track.title,
+        position: track.releaseAppearances.find(
+          (appearance) => appearance.releaseId === release.id,
+        )?.position,
+      })),
+    ).toEqual([
+      { title: 'Position One', position: '1' },
+      { title: 'Position Four', position: '4' },
     ])
   })
 

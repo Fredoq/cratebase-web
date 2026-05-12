@@ -260,6 +260,7 @@ type DraftTrackRow = {
   id: string
   existingTrackId?: string
   existingTrackQuery: string
+  position: string
   title: string
   durationParts: DurationParts
   inheritReleaseArtistCredits: boolean
@@ -649,7 +650,7 @@ function ReleaseEntryForm({
     const submittedTracks = draftTracks
       .filter(isDraftTrackIncluded)
       .map((track, index): TrackRecord => {
-        const trackPosition = String(index + 1)
+        const trackPosition = draftTrackPosition(track, index)
         const linkedTrack = track.existingTrackId
           ? tracks.find((candidate) => candidate.id === track.existingTrackId)
           : undefined
@@ -998,7 +999,7 @@ function ReleaseEntryForm({
   }
 
   function addDraftTrack() {
-    const nextTrack = createDraftTrack(draftTracks.length + 1)
+    const nextTrack = createDraftTrack(nextDraftTrackPosition(draftTracks))
 
     setDraftTracks((currentTracks) => [...currentTracks, nextTrack])
     setSelectedDraftTrackId(nextTrack.id)
@@ -1023,6 +1024,7 @@ function ReleaseEntryForm({
     return {
       id: createManualRecordId('draft-track', String(position)),
       existingTrackQuery: '',
+      position: String(position),
       title: '',
       durationParts: { ...emptyDurationParts },
       inheritReleaseArtistCredits: !isVariousArtists,
@@ -1992,6 +1994,7 @@ function draftTracksFromRelease(
         id: createManualRecordId('draft-track', `${release.id}-${track.id}`),
         existingTrackId: track.id,
         existingTrackQuery: track.title,
+        position: appearance.position,
         title: track.title,
         durationParts: durationTextToParts(appearance.duration),
         inheritReleaseArtistCredits: false,
@@ -2019,6 +2022,20 @@ function draftTracksFromRelease(
       return first.position - second.position
     })
     .map((track) => track.draftTrack)
+}
+
+function draftTrackPosition(track: DraftTrackRow, index: number) {
+  return track.position.trim() || String(index + 1)
+}
+
+function nextDraftTrackPosition(tracks: DraftTrackRow[]) {
+  const numericPositions = tracks
+    .map((track) => Number.parseInt(track.position, 10))
+    .filter((position) => Number.isFinite(position) && position > 0)
+
+  return numericPositions.length > 0
+    ? Math.max(...numericPositions) + 1
+    : tracks.length + 1
 }
 
 function existingTrackSuggestions(
