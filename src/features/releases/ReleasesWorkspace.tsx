@@ -452,6 +452,8 @@ function ReleaseEntryForm({
         (credit) => artistCreditName(credit, artists).length === 0,
       ),
   )
+  const duplicateExistingTrackIds = duplicateDraftExistingTrackIds(draftTracks)
+  const hasDuplicateExistingTrack = duplicateExistingTrackIds.size > 0
   const isValid =
     title.trim().length > 0 &&
     hasReleaseArtist &&
@@ -461,7 +463,8 @@ function ReleaseEntryForm({
     !hasUnsetReleaseArtistRole &&
     !hasUnsetTrackArtistRole &&
     !hasInvalidDraftTrack &&
-    !hasInvalidVariousArtistTrack
+    !hasInvalidVariousArtistTrack &&
+    !hasDuplicateExistingTrack
   const requiredMessage =
     title.trim().length === 0
       ? 'Title is required.'
@@ -479,7 +482,9 @@ function ReleaseEntryForm({
                   ? 'Set a role for each track artist.'
                   : hasInvalidVariousArtistTrack
                     ? 'Track artists are required for Various Artists releases.'
-                    : 'Tracklist rows with metadata need a track title.'
+                    : hasDuplicateExistingTrack
+                      ? 'Use each existing track only once in this release tracklist.'
+                      : 'Tracklist rows with metadata need a track title.'
   const releaseArtist = isVariousArtists
     ? 'Various Artists'
     : effectiveArtistCredits
@@ -492,12 +497,20 @@ function ReleaseEntryForm({
   const selectedExistingTrack = selectedDraftTrack?.existingTrackId
     ? tracks.find((track) => track.id === selectedDraftTrack.existingTrackId)
     : undefined
+  const unavailableExistingTrackIds = new Set(
+    draftTracks
+      .filter(
+        (track) =>
+          track.id !== selectedDraftTrack?.id && Boolean(track.existingTrackId),
+      )
+      .map((track) => track.existingTrackId ?? ''),
+  )
   const selectedExistingTrackSuggestions = selectedDraftTrack
     ? existingTrackSuggestions(
         selectedDraftTrack,
         tracks,
         releaseMainArtistCredits,
-      )
+      ).filter((track) => !unavailableExistingTrackIds.has(track.id))
     : []
   const selectedDraftTrackIndex = selectedDraftTrack
     ? draftTracks.findIndex((track) => track.id === selectedDraftTrack.id) + 1
@@ -651,7 +664,11 @@ function ReleaseEntryForm({
     const submittedTracks = draftTracks
       .filter(isDraftTrackIncluded)
       .map((track, index): TrackRecord => {
-        const trackPosition = draftTrackPosition(track, index)
+        const trackPosition = draftTrackPosition(
+          track,
+          index,
+          Boolean(initialRelease),
+        )
         const linkedTrack = track.existingTrackId
           ? tracks.find((candidate) => candidate.id === track.existingTrackId)
           : undefined
@@ -2025,8 +2042,14 @@ function draftTracksFromRelease(
     .map((track) => track.draftTrack)
 }
 
-function draftTrackPosition(track: DraftTrackRow, index: number) {
-  return track.position.trim() || String(index + 1)
+function draftTrackPosition(
+  track: DraftTrackRow,
+  index: number,
+  preserveStoredPosition: boolean,
+) {
+  return preserveStoredPosition
+    ? track.position.trim() || String(index + 1)
+    : String(index + 1)
 }
 
 function nextDraftTrackPosition(tracks: DraftTrackRow[]) {
@@ -2037,6 +2060,25 @@ function nextDraftTrackPosition(tracks: DraftTrackRow[]) {
   return numericPositions.length > 0
     ? Math.max(...numericPositions) + 1
     : tracks.length + 1
+}
+
+function duplicateDraftExistingTrackIds(tracks: DraftTrackRow[]) {
+  const seenTrackIds = new Set<string>()
+  const duplicateTrackIds = new Set<string>()
+
+  tracks.forEach((track) => {
+    if (!isDraftTrackIncluded(track) || !track.existingTrackId) {
+      return
+    }
+
+    if (seenTrackIds.has(track.existingTrackId)) {
+      duplicateTrackIds.add(track.existingTrackId)
+    } else {
+      seenTrackIds.add(track.existingTrackId)
+    }
+  })
+
+  return duplicateTrackIds
 }
 
 function existingTrackSuggestions(

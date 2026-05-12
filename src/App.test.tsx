@@ -3133,6 +3133,69 @@ describe('App', () => {
     ).toBeInTheDocument()
   })
 
+  it('keeps existing track suggestions unique across draft rows', async () => {
+    window.history.pushState({}, '', '/releases')
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Add release' }))
+    const form = screen.getByRole('form', { name: 'Add release' })
+
+    await user.type(within(form).getByLabelText('Title'), 'Blue Monday Pair')
+    await addReleaseArtist(user, form, 'New Order')
+    await addReleaseLabel(user, form, 'Factory')
+    await selectReleaseGenre(user, form, 'Synth-pop')
+    await user.click(within(form).getByRole('button', { name: '+ Track' }))
+    await user.type(within(form).getByLabelText('Existing track'), 'Blue')
+    await user.click(
+      within(form).getByRole('button', {
+        name: /Use existing track Blue Monday/i,
+      }),
+    )
+    await user.click(within(form).getByRole('button', { name: '+ Add track' }))
+    await user.type(within(form).getByLabelText('Existing track'), 'Blue')
+
+    expect(
+      within(form).queryByRole('button', {
+        name: /Use existing track Blue Monday/i,
+      }),
+    ).not.toBeInTheDocument()
+    expect(within(form).getByText('No matching existing tracks.')).toBeVisible()
+  })
+
+  it('uses visible row order after deleting draft tracks in a new release', async () => {
+    window.history.pushState({}, '', '/releases')
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Add release' }))
+    const form = screen.getByRole('form', { name: 'Add release' })
+
+    await user.type(within(form).getByLabelText('Title'), 'Trimmed Tracklist')
+    await addReleaseArtist(user, form, 'New Order')
+    await addReleaseLabel(user, form, 'Factory')
+    await selectReleaseGenre(user, form, 'Synth-pop')
+    await addReleaseTrackRow(user, form, 'First Cut')
+    await user.click(within(form).getByRole('button', { name: '+ Add track' }))
+    await user.type(within(form).getByLabelText('Track title'), 'Second Cut')
+    await user.click(
+      within(form).getByRole('button', { name: /Track 1 First Cut/ }),
+    )
+    await user.click(
+      within(form).getByRole('button', {
+        name: 'Remove track 1 from tracklist',
+      }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Add record' }))
+
+    const createdTrack = getInitialCatalogStateForTests()?.tracks.find(
+      (track) => track.title === 'Second Cut',
+    )
+
+    expect(createdTrack?.trackNumber).toBe('1')
+    expect(createdTrack?.releaseAppearances.at(-1)?.position).toBe('1')
+  })
+
   it('removes an edited release tracklist row without deleting the track', async () => {
     window.history.pushState({}, '', '/releases?release=blue-monday')
     const user = userEvent.setup()
