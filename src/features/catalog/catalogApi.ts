@@ -123,6 +123,7 @@ export const emptyCatalogState: CatalogState = {
 }
 
 let testCatalogState: CatalogState | null = null
+const mainArtistRoleCode = 'mainArtist'
 
 export function seedCatalogForTests(state: CatalogState) {
   if (import.meta.env.MODE !== 'test') {
@@ -228,9 +229,13 @@ export function dictionaryLabel(
   )
 }
 
-function dictionaryCode(kind: DictionaryKind, labelOrCode: string) {
+function dictionaryCode(
+  kind: DictionaryKind,
+  labelOrCode: string,
+  dictionaries = activeDictionaries,
+) {
   const value = labelOrCode.trim()
-  const entry = activeDictionaries[kind].find(
+  const entry = dictionaries[kind].find(
     (item) => item.code === value || item.name === value,
   )
 
@@ -1031,11 +1036,13 @@ export async function createTrack(track: TrackRecord) {
 }
 
 async function createTrackRecord(track: TrackRecord) {
+  const genreSet = activeGenreLabelSet()
+
   return sendJson<TrackDto>('/api/tracks', 'POST', {
     title: track.title,
     durationSeconds: parseDuration(track.duration),
-    genres: track.tags.filter((tag) => activeGenreLabelSet().has(tag)),
-    tags: track.tags.filter((tag) => !activeGenreLabelSet().has(tag)),
+    genres: track.tags.filter((tag) => genreSet.has(tag)),
+    tags: track.tags.filter((tag) => !genreSet.has(tag)),
     credits: track.credits.map(toTrackCreditRequest),
     releaseAppearances: track.releaseAppearances
       .filter((appearance) => appearance.releaseId)
@@ -1073,11 +1080,13 @@ export async function updateTrack(track: TrackRecord) {
     return
   }
 
+  const genreSet = activeGenreLabelSet()
+
   await sendJson(`/api/tracks/${track.id}`, 'PUT', {
     title: track.title,
     durationSeconds: parseDuration(track.duration),
-    genres: track.tags.filter((tag) => activeGenreLabelSet().has(tag)),
-    tags: track.tags.filter((tag) => !activeGenreLabelSet().has(tag)),
+    genres: track.tags.filter((tag) => genreSet.has(tag)),
+    tags: track.tags.filter((tag) => !genreSet.has(tag)),
     credits: track.credits.map(toTrackCreditRequest),
     releaseAppearances: track.releaseAppearances
       .filter((appearance) => appearance.releaseId)
@@ -1691,8 +1700,8 @@ function toReleaseRecord(
             credit.contributorName,
           role: creditRoleLabel(credit.role, dictionaries),
         }))
-  const mainCredits = releaseCredits.filter(
-    (credit) => credit.role === 'Main artist',
+  const mainCredits = releaseCredits.filter((credit) =>
+    isMainArtistRole(credit.role, dictionaries),
   )
   const artistDisplay = release.isVariousArtists
     ? 'Various Artists'
@@ -1796,8 +1805,9 @@ function toTrackRecord(
         )
       : credits.map((credit) => toTrackCredit(credit, dictionaries))
   const mainCredit =
-    trackCredits.find((credit) => credit.role === 'Main artist') ??
-    trackCredits[0]
+    trackCredits.find((credit) =>
+      isMainArtistRole(credit.role, dictionaries),
+    ) ?? trackCredits[0]
   const release = primaryReleaseTrack?.release
     ? releasesById.get(primaryReleaseTrack.release.id)
     : primaryAppearance?.releaseId
@@ -2040,7 +2050,9 @@ function releaseArtistDisplay(release: ReleaseDto) {
   }
 
   const credits = release.artistCredits ?? []
-  const mainCredits = credits.filter((credit) => credit.role === 'mainArtist')
+  const mainCredits = credits.filter(
+    (credit) => credit.role === mainArtistRoleCode,
+  )
   const visibleCredits = mainCredits.length > 0 ? mainCredits : credits
 
   return (
@@ -2081,7 +2093,7 @@ function releaseArtistCreditsFromDisplay(
     return []
   }
 
-  return [{ artistId: release.artistId, artist, role: 'Main artist' }]
+  return [{ artistId: release.artistId, artist, role: mainArtistRoleLabel() }]
 }
 
 function releaseLabelsFromDisplay(release: ReleaseRecord): ReleaseLabel[] {
@@ -2357,8 +2369,16 @@ function creditRoleLabel(role: string, dictionaries = activeDictionaries) {
   return toCreditRole(dictionaryLabel(dictionaries, 'creditRole', role))
 }
 
-function toCreditRoleCode(role: string) {
-  return dictionaryCode('creditRole', role)
+function mainArtistRoleLabel(dictionaries = activeDictionaries) {
+  return creditRoleLabel(mainArtistRoleCode, dictionaries)
+}
+
+function isMainArtistRole(role: string, dictionaries = activeDictionaries) {
+  return toCreditRoleCode(role, dictionaries) === mainArtistRoleCode
+}
+
+function toCreditRoleCode(role: string, dictionaries = activeDictionaries) {
+  return dictionaryCode('creditRole', role, dictionaries)
 }
 
 function relationTypeLabel(
@@ -2455,7 +2475,7 @@ function mediumRequestForDictionaryEntry(
       return {
         type: entry.code,
         path: '/cratebase/manual-entry-placeholder',
-        format: 'flac',
+        format: value.toLowerCase().includes('mp3') ? 'mp3' : 'flac',
       }
     case 'vinyl':
       return { type: entry.code, description: value || entry.name }
