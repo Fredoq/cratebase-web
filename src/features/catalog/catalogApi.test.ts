@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createRelease,
   createTrack,
+  defaultCatalogDictionaries,
   loadCatalog,
   updateRelease,
 } from './catalogApi'
@@ -10,6 +11,17 @@ function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     headers: { 'Content-Type': 'application/json' },
     status,
+  })
+}
+
+function defaultDictionaryListResponse() {
+  const items = Object.values(defaultCatalogDictionaries).flat()
+
+  return jsonResponse({
+    items,
+    limit: 100,
+    offset: 0,
+    total: items.length,
   })
 }
 
@@ -171,6 +183,7 @@ describe('catalog API adapter', () => {
           total: 1,
         }),
       )
+      .mockResolvedValueOnce(defaultDictionaryListResponse())
     vi.stubGlobal('fetch', fetchMock)
 
     const catalog = await loadCatalog()
@@ -280,6 +293,7 @@ describe('catalog API adapter', () => {
       .mockResolvedValueOnce(
         jsonResponse({ items: [], limit: 100, offset: 0, total: 0 }),
       )
+      .mockResolvedValueOnce(defaultDictionaryListResponse())
     vi.stubGlobal('fetch', fetchMock)
 
     const catalog = await loadCatalog()
@@ -380,13 +394,12 @@ describe('catalog API adapter', () => {
         )
       }
 
+      if (url.pathname === '/api/settings/dictionaries') {
+        return Promise.resolve(defaultDictionaryListResponse())
+      }
+
       return Promise.resolve(
-        jsonResponse({
-          items: [],
-          limit: 100,
-          offset: 0,
-          total: 0,
-        }),
+        jsonResponse({ items: [], limit: 100, offset: 0, total: 0 }),
       )
     })
     vi.stubGlobal('fetch', fetchMock)
@@ -740,6 +753,10 @@ describe('catalog API adapter', () => {
             total: 2,
           }),
         )
+      }
+
+      if (url.pathname === '/api/settings/dictionaries') {
+        return Promise.resolve(defaultDictionaryListResponse())
       }
 
       return Promise.resolve(
