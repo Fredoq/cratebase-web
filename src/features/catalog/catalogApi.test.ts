@@ -4,6 +4,7 @@ import {
   createRelease,
   createTrack,
   defaultCatalogDictionaries,
+  defaultRatingCriteria,
   loadCatalog,
   updateRelease,
 } from './catalogApi'
@@ -24,6 +25,19 @@ function defaultDictionaryListResponse() {
     offset: 0,
     total: items.length,
   })
+}
+
+function defaultRatingCriteriaListResponse() {
+  return jsonResponse({
+    items: defaultRatingCriteria,
+    limit: 100,
+    offset: 0,
+    total: defaultRatingCriteria.length,
+  })
+}
+
+function emptyListResponse() {
+  return jsonResponse({ items: [], limit: 100, offset: 0, total: 0 })
 }
 
 function dictionaryListResponse(
@@ -211,6 +225,23 @@ describe('catalog API adapter', () => {
         }),
       )
       .mockResolvedValueOnce(defaultDictionaryListResponse())
+      .mockResolvedValueOnce(defaultRatingCriteriaListResponse())
+      .mockResolvedValueOnce(
+        jsonResponse({
+          items: [
+            {
+              id: '00000000-0000-7000-8000-000000000010',
+              criterionId: defaultRatingCriteria[0].id,
+              targetType: 'track',
+              targetId: '00000000-0000-7000-8000-000000000004',
+              value: 9,
+            },
+          ],
+          limit: 100,
+          offset: 0,
+          total: 1,
+        }),
+      )
     vi.stubGlobal('fetch', fetchMock)
 
     const catalog = await loadCatalog()
@@ -234,6 +265,9 @@ describe('catalog API adapter', () => {
       releaseTitle: 'Selected Ambient Works 85-92',
       status: 'Owned',
     })
+    expect(catalog.tracks[0].ratings).toEqual([
+      expect.objectContaining({ value: 9 }),
+    ])
     expect(JSON.stringify(catalog)).not.toMatch(
       /authenticated collection api|collection api|release api/i,
     )
@@ -321,6 +355,8 @@ describe('catalog API adapter', () => {
         jsonResponse({ items: [], limit: 100, offset: 0, total: 0 }),
       )
       .mockResolvedValueOnce(defaultDictionaryListResponse())
+      .mockResolvedValueOnce(defaultRatingCriteriaListResponse())
+      .mockResolvedValueOnce(emptyListResponse())
     vi.stubGlobal('fetch', fetchMock)
 
     const catalog = await loadCatalog()

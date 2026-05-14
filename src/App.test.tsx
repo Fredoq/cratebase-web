@@ -61,6 +61,8 @@ function emptyCatalogLoadResponses() {
   return [
     ...Array.from({ length: 8 }, emptyCatalogListResponse),
     defaultDictionaryListResponse(),
+    emptyCatalogListResponse(),
+    emptyCatalogListResponse(),
   ]
 }
 
