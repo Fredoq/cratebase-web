@@ -721,6 +721,7 @@ function renderWorkspace(
           onDeletePlaylist={catalogState.onDeletePlaylist}
           onUpdatePlaylist={catalogState.onUpdatePlaylist}
           playlists={catalogState.playlists}
+          ratings={catalogState.ratings}
           releases={catalogState.releases}
           tracks={catalogState.tracks}
           ownedItems={catalogState.ownedItems}

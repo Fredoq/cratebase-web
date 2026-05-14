@@ -38,6 +38,7 @@ type PlaylistsWorkspaceProps = {
   onManualEntryClose?: () => void
   ownedItems?: OwnedItemRecord[]
   playlists?: PlaylistRecord[]
+  ratings?: EntityRating[]
   releases?: ReleaseRecord[]
   tracks?: TrackRecord[]
   ratingCriteria?: RatingCriterion[]
@@ -53,6 +54,7 @@ export function PlaylistsWorkspace({
   onManualEntryClose = () => {},
   ownedItems = [],
   playlists: controlledPlaylists,
+  ratings = [],
   releases = [],
   tracks = [],
   ratingCriteria = [],
@@ -147,6 +149,7 @@ export function PlaylistsWorkspace({
       <RatingShowcasesView
         artists={artists}
         onViewModeChange={setViewMode}
+        ratings={ratings}
         ratingCriteria={ratingCriteria}
         releases={releases}
         tracks={tracks}
@@ -271,12 +274,14 @@ function PlaylistViewModeSwitch({
 function RatingShowcasesView({
   artists,
   onViewModeChange,
+  ratings,
   ratingCriteria,
   releases,
   tracks,
 }: {
   artists: ArtistRecord[]
   onViewModeChange: (mode: 'playlists' | 'ratings') => void
+  ratings: EntityRating[]
   ratingCriteria: RatingCriterion[]
   releases: ReleaseRecord[]
   tracks: TrackRecord[]
@@ -305,6 +310,7 @@ function RatingShowcasesView({
     normalizedTargetType,
     mode,
     artists,
+    ratings,
     releases,
     tracks,
   )
@@ -331,11 +337,13 @@ function RatingShowcasesView({
           />
           <FilterSelect
             label="Target type"
-            value={ratingTargetTypeLabel(normalizedTargetType)}
-            values={availableTargetTypes.map(ratingTargetTypeLabel)}
+            value={ratingTargetTypeLabel(normalizedTargetType, true)}
+            values={availableTargetTypes.map((availableTargetType) =>
+              ratingTargetTypeLabel(availableTargetType, true),
+            )}
             onChange={(label) => {
               const nextType = availableTargetTypes.find(
-                (candidate) => ratingTargetTypeLabel(candidate) === label,
+                (candidate) => ratingTargetTypeLabel(candidate, true) === label,
               )
               setTargetType(nextType ?? normalizedTargetType)
             }}
@@ -344,6 +352,7 @@ function RatingShowcasesView({
             label="Scope"
             value="Collection"
             values={['Collection']}
+            disabled
             onChange={() => {}}
           />
           <FilterSelect
@@ -390,7 +399,7 @@ function RatingShowcasesView({
                       {ratingTargetTypeLabel(row.targetType)}
                     </td>
                     <td data-label="Rating">
-                      {row.value ? `${row.value}/10` : 'Unrated'}
+                      {row.value !== undefined ? `${row.value}/10` : 'Unrated'}
                     </td>
                   </tr>
                 ))}
@@ -576,6 +585,7 @@ function buildRatingShowcaseRows(
   targetType: RatingTargetType,
   mode: 'top' | 'unrated',
   artists: ArtistRecord[],
+  ratings: EntityRating[],
   releases: ReleaseRecord[],
   tracks: TrackRecord[],
 ) {
@@ -583,12 +593,16 @@ function buildRatingShowcaseRows(
     return []
   }
 
-  const rows = ratingTargetsFor(targetType, artists, releases, tracks).map(
-    (target) => ({
-      ...target,
-      value: ratingValueFor(target.ratings, criterion.id),
-    }),
-  )
+  const rows = ratingTargetsFor(
+    targetType,
+    artists,
+    ratings,
+    releases,
+    tracks,
+  ).map((target) => ({
+    ...target,
+    value: ratingValueFor(target.ratings, criterion.id),
+  }))
 
   return mode === 'top'
     ? rows
@@ -606,6 +620,7 @@ function buildRatingShowcaseRows(
 function ratingTargetsFor(
   targetType: RatingTargetType,
   artists: ArtistRecord[],
+  ratings: EntityRating[],
   releases: ReleaseRecord[],
   tracks: TrackRecord[],
 ): RatingTargetRow[] {
@@ -648,7 +663,9 @@ function ratingTargetsFor(
     subtitle: 'Label',
     targetType,
     title: label.title,
-    ratings: [],
+    ratings: ratings.filter(
+      (rating) => rating.targetType === 'label' && rating.targetId === label.id,
+    ),
   }))
 }
 
@@ -680,15 +697,16 @@ function uniqueLabelTargets(releases: ReleaseRecord[]) {
   )
 }
 
-function ratingTargetTypeLabel(targetType: RatingTargetType) {
-  const labels: Record<RatingTargetType, string> = {
-    artist: 'Artists',
-    release: 'Releases',
-    track: 'Tracks',
-    label: 'Labels',
-  }
+function ratingTargetTypeLabel(targetType: RatingTargetType, plural = false) {
+  const labels: Record<RatingTargetType, { plural: string; singular: string }> =
+    {
+      artist: { plural: 'Artists', singular: 'Artist' },
+      release: { plural: 'Releases', singular: 'Release' },
+      track: { plural: 'Tracks', singular: 'Track' },
+      label: { plural: 'Labels', singular: 'Label' },
+    }
 
-  return labels[targetType]
+  return plural ? labels[targetType].plural : labels[targetType].singular
 }
 
 function hasLinkedPlaylistReferences(

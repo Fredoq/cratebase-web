@@ -104,7 +104,7 @@ export function RatingsPanel({
 }
 
 export function RatingTableValue({ value }: { value?: number }) {
-  return value ? (
+  return value !== undefined ? (
     <span className="rating-table-value">{value}</span>
   ) : (
     <span className="rating-table-empty">-</span>

@@ -37,6 +37,12 @@ const ratingTargetTypeLabels: Record<RatingTargetType, string> = {
   label: 'Labels',
 }
 
+function parseSortOrder(value: string, fallback: number) {
+  const parsed = Number.parseInt(value, 10)
+
+  return Number.isNaN(parsed) ? fallback : parsed
+}
+
 export type SettingsWorkspaceProps = {
   dictionaries?: CatalogDictionaries
   onCreateEntry?: (entry: DictionaryEntryRequest) => void
@@ -393,7 +399,7 @@ function RatingCriterionCreatePanel({
       code: code.trim(),
       name: name.trim(),
       targetTypes,
-      sortOrder: Number.parseInt(sortOrder, 10) || 100,
+      sortOrder: parseSortOrder(sortOrder, 100),
       isActive: true,
     })
     setCode('')
@@ -466,12 +472,18 @@ function RatingCriterionDetail({
   const [targetTypes, setTargetTypes] = useState<RatingTargetType[]>(
     criterion.targetTypes,
   )
+  const canSave = name.trim().length > 0
 
   function handleSave() {
+    const trimmedName = name.trim()
+    if (trimmedName.length === 0) {
+      return
+    }
+
     onUpdateRatingCriterion?.(criterion.id, {
-      name: name.trim(),
+      name: trimmedName,
       targetTypes,
-      sortOrder: Number.parseInt(sortOrder, 10) || criterion.sortOrder,
+      sortOrder: parseSortOrder(sortOrder, criterion.sortOrder),
       isActive,
     })
   }
@@ -527,6 +539,7 @@ function RatingCriterionDetail({
         <button
           className="button button-primary"
           type="button"
+          disabled={!canSave}
           onClick={handleSave}
         >
           <Save size={16} aria-hidden="true" />
@@ -607,7 +620,7 @@ function DictionaryCreatePanel({
       kind,
       code: code.trim(),
       name: name.trim(),
-      sortOrder: Number.parseInt(sortOrder, 10) || 100,
+      sortOrder: parseSortOrder(sortOrder, 100),
       isActive: true,
       mediaProfile: kind === 'mediaType' ? mediaProfile : null,
     })
@@ -767,7 +780,7 @@ function DictionaryEntryDetail({
   function handleSave() {
     onUpdateEntry?.(entry.id, {
       name: name.trim(),
-      sortOrder: Number.parseInt(sortOrder, 10) || entry.sortOrder,
+      sortOrder: parseSortOrder(sortOrder, entry.sortOrder),
       isActive,
       mediaProfile: entry.kind === 'mediaType' ? mediaProfile : null,
     })

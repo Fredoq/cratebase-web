@@ -1608,6 +1608,10 @@ export async function upsertRating(
   criterionId: string,
   value: number,
 ) {
+  if (!Number.isInteger(value) || value < 1 || value > 10) {
+    throw new Error('Rating value must be an integer from 1 to 10')
+  }
+
   if (
     updateTestCatalogState((state) => {
       const ratings = state.ratings ?? []

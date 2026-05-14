@@ -6,6 +6,7 @@ import {
   defaultCatalogDictionaries,
   defaultRatingCriteria,
   loadCatalog,
+  upsertRating,
   updateRelease,
 } from './catalogApi'
 
@@ -271,6 +272,17 @@ describe('catalog API adapter', () => {
     expect(JSON.stringify(catalog)).not.toMatch(
       /authenticated collection api|collection api|release api/i,
     )
+  })
+
+  it('rejects invalid rating values before sending a request', async () => {
+    const fetchMock = vi.fn<Window['fetch']>()
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(
+      upsertRating('track', 'track-1', defaultRatingCriteria[0].id, 11),
+    ).rejects.toThrow('Rating value must be an integer from 1 to 10')
+
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('keeps manual digital owned-copy placeholders from displaying an inferred file format', async () => {
