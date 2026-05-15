@@ -1105,12 +1105,9 @@ export async function deleteRelease(releaseId: string) {
 export async function uploadReleaseCover(releaseId: string, file: File) {
   const coverImage = toReleaseCoverImageFromFile(releaseId, file)
   if (
-    updateTestCatalogState((state) => ({
-      ...state,
-      releases: state.releases.map((release) =>
-        release.id === releaseId ? { ...release, coverImage } : release,
-      ),
-    }))
+    updateTestCatalogState((state) =>
+      applyReleaseCoverToState(state, releaseId, coverImage),
+    )
   ) {
     return
   }
@@ -1133,14 +1130,9 @@ export async function uploadReleaseCover(releaseId: string, file: File) {
 
 export async function removeReleaseCover(releaseId: string) {
   if (
-    updateTestCatalogState((state) => ({
-      ...state,
-      releases: state.releases.map((release) =>
-        release.id === releaseId
-          ? { ...release, coverImage: undefined }
-          : release,
-      ),
-    }))
+    updateTestCatalogState((state) =>
+      applyReleaseCoverToState(state, releaseId, undefined),
+    )
   ) {
     return
   }
@@ -1149,6 +1141,27 @@ export async function removeReleaseCover(releaseId: string) {
     `/api/releases/${releaseId}/cover-image`,
     `release-cover:${releaseId}`,
   )
+}
+
+function applyReleaseCoverToState(
+  state: CatalogState,
+  releaseId: string,
+  coverImage: ReleaseCoverImage | undefined,
+): CatalogState {
+  const releases = state.releases.map((release) =>
+    release.id === releaseId ? { ...release, coverImage } : release,
+  )
+  const updatedRelease = releases.find((release) => release.id === releaseId)
+
+  return {
+    ...state,
+    releases,
+    tracks: updatedRelease
+      ? state.tracks.map((track) =>
+          updateReleaseMetadataOnTrack(track, updatedRelease),
+        )
+      : state.tracks,
+  }
 }
 
 export async function createTrack(track: TrackRecord) {
