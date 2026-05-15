@@ -1659,6 +1659,53 @@ describe('App', () => {
     ).toBeInTheDocument()
   })
 
+  it('uploads and removes a release cover from the release detail panel', async () => {
+    window.history.pushState({}, '', '/releases')
+    const user = userEvent.setup()
+
+    render(<App />)
+
+    const detailPanel = screen.getByRole('complementary', {
+      name: 'Selected Ambient Works 85-92',
+    })
+    expect(
+      within(detailPanel).getByText('No cover image recorded'),
+    ).toBeVisible()
+    const uploadInput = within(detailPanel).getByLabelText('Upload cover')
+    expect(uploadInput).toHaveAttribute(
+      'accept',
+      'image/png,image/jpeg,image/webp',
+    )
+
+    const coverFile = new File(['cover-bytes'], 'front.png', {
+      type: 'image/png',
+    })
+    await user.upload(uploadInput, coverFile)
+
+    expect(
+      await within(detailPanel).findByRole('img', {
+        name: 'Selected Ambient Works 85-92 cover',
+      }),
+    ).toHaveAttribute(
+      'src',
+      '/api/releases/selected-ambient-works-85-92/cover-image',
+    )
+    expect(within(detailPanel).getByLabelText('Replace cover')).toHaveAttribute(
+      'accept',
+      'image/png,image/jpeg,image/webp',
+    )
+
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    await user.click(
+      within(detailPanel).getByRole('button', { name: 'Remove cover' }),
+    )
+
+    expect(confirmSpy).toHaveBeenCalledWith('Remove this cover image?')
+    expect(
+      await within(detailPanel).findByText('No cover image recorded'),
+    ).toBeVisible()
+  })
+
   it('filters releases by title, artist, label, year, media and ownership status', async () => {
     window.history.pushState({}, '', '/releases')
     const user = userEvent.setup()

@@ -6,6 +6,8 @@ import {
   defaultCatalogDictionaries,
   defaultRatingCriteria,
   loadCatalog,
+  removeReleaseCover,
+  uploadReleaseCover,
   upsertRating,
   updateRelease,
 } from './catalogApi'
@@ -128,6 +130,13 @@ describe('catalog API adapter', () => {
               year: 1992,
               genres: ['Ambient'],
               tags: ['lossless'],
+              coverImage: {
+                url: '/api/releases/00000000-0000-7000-8000-000000000003/cover-image',
+                contentType: 'image/png',
+                originalFileName: 'saw-front.png',
+                sizeBytes: 512,
+                sourceType: 'localUpload',
+              },
             },
           ],
           limit: 100,
@@ -258,6 +267,13 @@ describe('catalog API adapter', () => {
     })
     expect(catalog.releases[0]).toMatchObject({
       artist: 'Aphex Twin',
+      coverImage: {
+        url: '/api/releases/00000000-0000-7000-8000-000000000003/cover-image',
+        contentType: 'image/png',
+        originalFileName: 'saw-front.png',
+        sizeBytes: 512,
+        sourceType: 'localUpload',
+      },
       label: 'Warp',
       title: 'Selected Ambient Works 85-92',
     })
@@ -283,6 +299,53 @@ describe('catalog API adapter', () => {
     ).rejects.toThrow('Rating value must be an integer from 1 to 10')
 
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('uploads release covers with multipart form data', async () => {
+    const fetchMock = vi.fn<Window['fetch']>().mockResolvedValue(
+      jsonResponse({
+        url: '/api/releases/release-id/cover-image',
+        contentType: 'image/png',
+        originalFileName: 'front.png',
+        sizeBytes: 16,
+        sourceType: 'localUpload',
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const file = new File(['cover-bytes'], 'front.png', {
+      type: 'image/png',
+    })
+
+    await uploadReleaseCover('release-id', file)
+
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      '/api/releases/release-id/cover-image',
+    )
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      credentials: 'include',
+      method: 'PUT',
+    })
+    const body = fetchMock.mock.calls[0][1]?.body
+    expect(body).toBeInstanceOf(FormData)
+    expect((body as FormData).get('file')).toBe(file)
+  })
+
+  it('removes release covers with explicit delete confirmation', async () => {
+    const fetchMock = vi
+      .fn<Window['fetch']>()
+      .mockResolvedValue(new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await removeReleaseCover('release-id')
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/releases/release-id/cover-image',
+      {
+        credentials: 'include',
+        headers: { 'X-Cratebase-Confirm-Delete': 'release-cover:release-id' },
+        method: 'DELETE',
+      },
+    )
   })
 
   it('keeps manual digital owned-copy placeholders from displaying an inferred file format', async () => {

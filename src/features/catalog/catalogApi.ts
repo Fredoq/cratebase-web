@@ -6,6 +6,7 @@ import type {
 import type { PlaylistRecord } from '../playlists/playlistsData'
 import type {
   ReleaseArtistCredit,
+  ReleaseCoverImage,
   ReleaseLabel,
   ReleaseRecord,
   ReleaseType,
@@ -369,11 +370,20 @@ type ReleaseDto = {
   year?: number | null
   genres: string[]
   tags: string[]
+  coverImage?: ReleaseCoverImageDto | null
   isVariousArtists?: boolean
   notOnLabel?: boolean
   artistCredits?: ReleaseArtistCreditDto[]
   labels?: ReleaseLabelDto[]
   tracklist?: ReleaseTracklistItemDto[]
+}
+
+type ReleaseCoverImageDto = {
+  url: string
+  contentType: string
+  originalFileName: string
+  sizeBytes: number
+  sourceType: string
 }
 
 type ReleaseArtistCreditDto = {
@@ -1088,6 +1098,55 @@ export async function deleteRelease(releaseId: string) {
   }
 
   await sendDelete(`/api/releases/${releaseId}`, `release:${releaseId}`)
+}
+
+export async function uploadReleaseCover(releaseId: string, file: File) {
+  const coverImage = toReleaseCoverImageFromFile(releaseId, file)
+  if (
+    updateTestCatalogState((state) => ({
+      ...state,
+      releases: state.releases.map((release) =>
+        release.id === releaseId ? { ...release, coverImage } : release,
+      ),
+    }))
+  ) {
+    return
+  }
+
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await fetch(`/api/releases/${releaseId}/cover-image`, {
+    body: formData,
+    credentials: 'include',
+    method: 'PUT',
+  })
+
+  if (!response.ok) {
+    throw await CatalogApiError.fromResponse(response)
+  }
+
+  const responseBody = (await response.json()) as ReleaseCoverImageDto
+  assertNoCollectionIds(responseBody)
+}
+
+export async function removeReleaseCover(releaseId: string) {
+  if (
+    updateTestCatalogState((state) => ({
+      ...state,
+      releases: state.releases.map((release) =>
+        release.id === releaseId
+          ? { ...release, coverImage: undefined }
+          : release,
+      ),
+    }))
+  ) {
+    return
+  }
+
+  await sendDelete(
+    `/api/releases/${releaseId}/cover-image`,
+    `release-cover:${releaseId}`,
+  )
 }
 
 export async function createTrack(track: TrackRecord) {
@@ -2003,6 +2062,9 @@ function toReleaseRecord(
     genres: release.genres,
     tags: release.tags,
     releaseNotes: '',
+    coverImage: release.coverImage
+      ? toReleaseCoverImage(release.coverImage)
+      : undefined,
     ownedCopies: ownedItems
       .filter(
         (item) => item.targetType === 'release' && item.targetId === release.id,
@@ -2016,6 +2078,31 @@ function toReleaseRecord(
         note: '',
       })),
     ratings: targetRatings(ratingsByTarget, 'release', release.id),
+  }
+}
+
+function toReleaseCoverImage(
+  coverImage: ReleaseCoverImageDto,
+): ReleaseCoverImage {
+  return {
+    url: coverImage.url,
+    contentType: coverImage.contentType,
+    originalFileName: coverImage.originalFileName,
+    sizeBytes: coverImage.sizeBytes,
+    sourceType: coverImage.sourceType,
+  }
+}
+
+function toReleaseCoverImageFromFile(
+  releaseId: string,
+  file: File,
+): ReleaseCoverImage {
+  return {
+    url: `/api/releases/${releaseId}/cover-image`,
+    contentType: file.type,
+    originalFileName: file.name,
+    sizeBytes: file.size,
+    sourceType: 'localUpload',
   }
 }
 
