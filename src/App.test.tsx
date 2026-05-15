@@ -1638,6 +1638,29 @@ describe('App', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('shows release cover thumbnails in artist release credit appearances', () => {
+    seedCatalogWithSelectedAmbientCover()
+    window.history.pushState({}, '', '/artists?artist=aphex-twin')
+
+    render(<App />)
+
+    const detailPanel = screen.getByRole('complementary', {
+      name: 'Aphex Twin',
+    })
+
+    expect(
+      within(detailSection(detailPanel, 'Credit appearances')).getByRole(
+        'img',
+        {
+          name: 'Selected Ambient Works 85-92 cover thumbnail',
+        },
+      ),
+    ).toHaveAttribute(
+      'src',
+      '/api/releases/selected-ambient-works-85-92/cover-image',
+    )
+  })
+
   it('renders the releases workspace with release rows and selected detail', () => {
     window.history.pushState({}, '', '/releases')
 
@@ -2274,6 +2297,29 @@ describe('App', () => {
         },
       ),
     ).toHaveAttribute('href', '/releases?release=selected-ambient-works-85-92')
+  })
+
+  it('shows release cover thumbnails in track release appearances', () => {
+    seedCatalogWithSelectedAmbientCover()
+    window.history.pushState({}, '', '/tracks?track=polynomial-c')
+
+    render(<App />)
+
+    const detailPanel = screen.getByRole('complementary', {
+      name: 'Polynomial-C',
+    })
+
+    expect(
+      within(detailSection(detailPanel, 'Release appearances')).getByRole(
+        'img',
+        {
+          name: 'Selected Ambient Works 85-92 cover thumbnail',
+        },
+      ),
+    ).toHaveAttribute(
+      'src',
+      '/api/releases/selected-ambient-works-85-92/cover-image',
+    )
   })
 
   it('keeps release appearances read-only in the manual track form', async () => {
@@ -4319,6 +4365,30 @@ function detailSection(panel: HTMLElement, headingName: string) {
   }
 
   return section
+}
+
+function seedCatalogWithSelectedAmbientCover() {
+  seedCatalogForTests({
+    artists: artistRecords,
+    releases: releaseRecords.map((release) =>
+      release.id === 'selected-ambient-works-85-92'
+        ? {
+            ...release,
+            coverImage: {
+              url: '/api/releases/selected-ambient-works-85-92/cover-image',
+              contentType: 'image/png',
+              originalFileName: 'saw-front.png',
+              sizeBytes: 512,
+              sourceType: 'localUpload',
+            },
+          }
+        : release,
+    ),
+    tracks: trackRecords,
+    ownedItems: ownedItemRecords,
+    relations: relationRecords,
+    playlists: playlistRecords,
+  })
 }
 
 async function addManualArtist(

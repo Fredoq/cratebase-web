@@ -1007,6 +1007,7 @@ function updateReleaseMetadataOnTrack(
       appearance.releaseId === release.id
         ? {
             ...appearance,
+            coverImage: release.coverImage,
             releaseTitle: release.title,
             releaseArtist: release.artist,
             year: release.year,
@@ -1027,6 +1028,7 @@ function releaseAppearanceForTrack(
 
   return {
     releaseId: release.id,
+    coverImage: release.coverImage,
     releaseTitle: release.title,
     releaseArtist: release.artist,
     year: release.year,
@@ -2118,23 +2120,33 @@ function toTrackRecord(
   const releaseTracks = releaseTrackByTrackId.get(track.id) ?? []
   const primaryReleaseTrack = releaseTracks[0]
   const releaseAppearances =
-    track.releaseAppearances?.map((appearance) => ({
-      releaseId: appearance.releaseId,
-      releaseTitle: appearance.releaseTitle,
-      releaseArtist: appearance.releaseArtist,
-      year: appearance.year?.toString() ?? 'Unknown year',
-      label: appearance.label ?? 'Unknown label',
-      position: appearance.position.toString(),
-      duration: formatDuration(
-        appearance.durationSeconds ?? track.durationSeconds,
-      ),
-      versionNote: appearance.versionNote ?? 'No version relation recorded',
-    })) ??
+    track.releaseAppearances?.map((appearance) => {
+      const appearanceRelease = releasesById.get(appearance.releaseId)
+
+      return {
+        releaseId: appearance.releaseId,
+        coverImage: appearanceRelease?.coverImage
+          ? toReleaseCoverImage(appearanceRelease.coverImage)
+          : undefined,
+        releaseTitle: appearance.releaseTitle,
+        releaseArtist: appearance.releaseArtist,
+        year: appearance.year?.toString() ?? 'Unknown year',
+        label: appearance.label ?? 'Unknown label',
+        position: appearance.position.toString(),
+        duration: formatDuration(
+          appearance.durationSeconds ?? track.durationSeconds,
+        ),
+        versionNote: appearance.versionNote ?? 'No version relation recorded',
+      }
+    }) ??
     releaseTracks.map(({ release: releaseContext, track: releaseTrack }) => {
       const appearanceRelease = releasesById.get(releaseContext.id)
 
       return {
         releaseId: appearanceRelease?.id,
+        coverImage: appearanceRelease?.coverImage
+          ? toReleaseCoverImage(appearanceRelease.coverImage)
+          : undefined,
         releaseTitle: appearanceRelease?.title ?? releaseContext.title,
         releaseArtist: appearanceRelease
           ? releaseArtistDisplay(appearanceRelease)

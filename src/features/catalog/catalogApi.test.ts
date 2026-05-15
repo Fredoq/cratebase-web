@@ -689,6 +689,13 @@ describe('catalog API adapter', () => {
                 year: 2026,
                 genres: [],
                 tags: [],
+                coverImage: {
+                  url: '/api/releases/00000000-0000-7000-8000-000000000002/cover-image',
+                  contentType: 'image/webp',
+                  originalFileName: 'this-is-real.webp',
+                  sizeBytes: 2048,
+                  sourceType: 'localUpload',
+                },
                 artistCredits: [
                   {
                     artistId: '00000000-0000-7000-8000-000000000001',
@@ -758,6 +765,13 @@ describe('catalog API adapter', () => {
       trackNumber: '1',
       duration: '3:31',
       versionHint: 'Single version',
+    })
+    expect(catalog.tracks[0].releaseAppearances[0].coverImage).toMatchObject({
+      url: '/api/releases/00000000-0000-7000-8000-000000000002/cover-image',
+      contentType: 'image/webp',
+      originalFileName: 'this-is-real.webp',
+      sizeBytes: 2048,
+      sourceType: 'localUpload',
     })
   })
 

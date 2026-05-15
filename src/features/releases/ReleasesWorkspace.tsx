@@ -786,6 +786,7 @@ function ReleaseEntryForm({
               ),
               {
                 releaseId: release.id,
+                coverImage: release.coverImage,
                 releaseTitle: release.title,
                 releaseArtist: release.artist,
                 year: release.year,
@@ -853,6 +854,7 @@ function ReleaseEntryForm({
           releaseAppearances: [
             {
               releaseId: release.id,
+              coverImage: release.coverImage,
               releaseTitle: release.title,
               releaseArtist: release.artist,
               year: release.year,
