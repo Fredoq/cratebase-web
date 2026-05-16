@@ -1296,25 +1296,28 @@ describe('catalog API adapter', () => {
       sourceRoot: '/Users/example/Music',
     })
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/imports/desktop-folder-scans', {
-      body: JSON.stringify({
-        sourceRoot: '/Users/example/Music',
-        ignoredFileCount: 0,
-        files: [
-          {
-            filePath: '/Users/example/Music/Release/01 Track.flac',
-            relativePath: 'Release/01 Track.flac',
-            format: 'flac',
-            sizeBytes: 12,
-            lastModifiedAt: '2026-05-16T12:00:00Z',
-            audioMetadata: null,
-            coverArtifact: null,
-          },
-        ],
-      }),
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      method: 'POST',
-    })
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/imports/desktop-folder-scans',
+      {
+        body: JSON.stringify({
+          sourceRoot: '/Users/example/Music',
+          ignoredFileCount: 0,
+          files: [
+            {
+              filePath: '/Users/example/Music/Release/01 Track.flac',
+              relativePath: 'Release/01 Track.flac',
+              format: 'flac',
+              sizeBytes: 12,
+              lastModifiedAt: '2026-05-16T12:00:00Z',
+              audioMetadata: null,
+              coverArtifact: null,
+            },
+          ],
+        }),
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+      },
+    )
   })
 })

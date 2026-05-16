@@ -112,7 +112,8 @@ async function readAudioMetadata(filePath) {
       artists: stringArray(common.artists) ?? singleStringArray(common.artist),
       albumTitle: stringOrNull(common.album),
       albumArtists:
-        stringArray(common.albumartists) ?? singleStringArray(common.albumartist),
+        stringArray(common.albumartists) ??
+        singleStringArray(common.albumartist),
       catalogNumber: catalogNumber(common, metadata.native),
       releaseDate: releaseDate(common),
       year: Number.isInteger(common.year) ? common.year : null,

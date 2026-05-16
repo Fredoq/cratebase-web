@@ -271,7 +271,9 @@ function ImportSourcePanel({ isDesktop }: { isDesktop: boolean }) {
         <div>
           <span>Desktop app</span>
           <strong>Local import enabled</strong>
-          <small>Choose a folder on this Mac and review parsed drafts here.</small>
+          <small>
+            Choose a folder on this Mac and review parsed drafts here.
+          </small>
         </div>
       </div>
     )
@@ -282,7 +284,10 @@ function ImportSourcePanel({ isDesktop }: { isDesktop: boolean }) {
       <div>
         <span>Desktop app</span>
         <strong>Local folder import is desktop-only</strong>
-        <small>Web review remains available; local folder selection runs in the macOS app.</small>
+        <small>
+          Web review remains available; local folder selection runs in the macOS
+          app.
+        </small>
       </div>
     </div>
   )
@@ -310,7 +315,9 @@ function SessionsTable({
           <tbody>
             {sessions.map((session) => (
               <tr
-                className={session.id === selectedSessionId ? 'is-selected' : undefined}
+                className={
+                  session.id === selectedSessionId ? 'is-selected' : undefined
+                }
                 key={session.id}
                 onClick={() => {
                   void onSelect(session.id)
@@ -355,14 +362,18 @@ function DraftsTable({
           <tbody>
             {drafts.map((draft) => (
               <tr
-                className={draft.id === selectedDraftId ? 'is-selected' : undefined}
+                className={
+                  draft.id === selectedDraftId ? 'is-selected' : undefined
+                }
                 key={draft.id}
                 onClick={() => onSelect(draft.id)}
               >
                 <td data-label="Release">
                   <span className="row-title">
                     <strong>{draft.title}</strong>
-                    <span>{draft.artistNames.join(', ') || 'Various Artists'}</span>
+                    <span>
+                      {draft.artistNames.join(', ') || 'Various Artists'}
+                    </span>
                   </span>
                 </td>
                 <td data-label="Status">{draft.status}</td>
@@ -399,7 +410,10 @@ function DraftEditor({
   onSkip: () => void
 }) {
   const isValid = draftIsValid(draft)
-  const releaseTypeValue = releaseTypeCodeForValue(draft.type, releaseTypeOptions)
+  const releaseTypeValue = releaseTypeCodeForValue(
+    draft.type,
+    releaseTypeOptions,
+  )
   const hasReleaseTypeOption = releaseTypeOptions.some(
     (option) => option.code === releaseTypeValue,
   )
@@ -488,7 +502,10 @@ function DraftEditor({
                   checked={draft.isVariousArtists}
                   type="checkbox"
                   onChange={(event) =>
-                    onChange({ ...draft, isVariousArtists: event.target.checked })
+                    onChange({
+                      ...draft,
+                      isVariousArtists: event.target.checked,
+                    })
                   }
                 />
                 <span>Various Artists</span>
@@ -500,7 +517,9 @@ function DraftEditor({
             credits={artistCredits}
             creditRoleOptions={creditRoleOptions}
             isVariousArtists={draft.isVariousArtists}
-            onChange={(credits) => onChange(withDraftArtistCredits(draft, credits))}
+            onChange={(credits) =>
+              onChange(withDraftArtistCredits(draft, credits))
+            }
           />
         </section>
 
@@ -526,7 +545,9 @@ function DraftEditor({
           <ImportLabelsEditor
             labels={labels}
             notOnLabel={draft.notOnLabel}
-            onChange={(nextLabels) => onChange(withDraftLabels(draft, nextLabels))}
+            onChange={(nextLabels) =>
+              onChange(withDraftLabels(draft, nextLabels))
+            }
           />
         </section>
 
@@ -543,10 +564,18 @@ function DraftEditor({
           {isValid ? 'Ready to confirm.' : validationMessage}
         </p>
         <div className="imports-actions">
-          <button className="button button-secondary" type="button" onClick={onSave}>
+          <button
+            className="button button-secondary"
+            type="button"
+            onClick={onSave}
+          >
             <Save size={16} /> Save
           </button>
-          <button className="button button-danger" type="button" onClick={onSkip}>
+          <button
+            className="button button-danger"
+            type="button"
+            onClick={onSkip}
+          >
             <X size={16} /> Skip
           </button>
           <button
@@ -643,14 +672,22 @@ function ImportArtistCreditsEditor({
       </div>
       <div className="release-artist-chip-list" aria-label="Artists">
         {credits.length === 0 ? (
-          <p className="release-section-note">Added artists will appear here.</p>
+          <p className="release-section-note">
+            Added artists will appear here.
+          </p>
         ) : (
           credits.map((credit, index) => {
             const artistName = importArtistCreditName(credit, artists)
-            const roleName = dictionaryNameForCode(credit.role, creditRoleOptions)
+            const roleName = dictionaryNameForCode(
+              credit.role,
+              creditRoleOptions,
+            )
 
             return (
-              <div className="release-artist-chip" key={`${artistName}-${index}`}>
+              <div
+                className="release-artist-chip"
+                key={`${artistName}-${index}`}
+              >
                 <span className="release-artist-chip-name">
                   {artistName || 'Unnamed artist'}
                 </span>
@@ -696,7 +733,11 @@ function ImportArtistCreditsEditor({
                   className="release-artist-chip-remove"
                   type="button"
                   onClick={() =>
-                    onChange(credits.filter((_, currentIndex) => currentIndex !== index))
+                    onChange(
+                      credits.filter(
+                        (_, currentIndex) => currentIndex !== index,
+                      ),
+                    )
                   }
                 >
                   ×
@@ -823,7 +864,9 @@ function ImportLabelsEditor({
                 className="release-label-chip-remove"
                 type="button"
                 onClick={() =>
-                  onChange(labels.filter((_, currentIndex) => currentIndex !== index))
+                  onChange(
+                    labels.filter((_, currentIndex) => currentIndex !== index),
+                  )
                 }
               >
                 ×
@@ -859,8 +902,15 @@ function TrackDraftList({
     ? tracks.findIndex((track) => track.id === selectedTrack.id)
     : -1
 
-  function updateTrack(trackId: string, patch: Partial<ReleaseImportDraftTrack>) {
-    onChange(tracks.map((track) => (track.id === trackId ? { ...track, ...patch } : track)))
+  function updateTrack(
+    trackId: string,
+    patch: Partial<ReleaseImportDraftTrack>,
+  ) {
+    onChange(
+      tracks.map((track) =>
+        track.id === trackId ? { ...track, ...patch } : track,
+      ),
+    )
   }
 
   function updateTrackArtistCredits(
@@ -874,7 +924,11 @@ function TrackDraftList({
     )
   }
 
-  function addTrackArtist(trackId: string, name = draftArtist, artistId = draftArtistId) {
+  function addTrackArtist(
+    trackId: string,
+    name = draftArtist,
+    artistId = draftArtistId,
+  ) {
     const artistName = name.trim()
     if (!artistName && !artistId) {
       return
@@ -922,7 +976,10 @@ function TrackDraftList({
         </div>
       </div>
       <div className="release-tracklist-layout imports-tracklist-layout">
-        <div className="release-tracklist-master imports-tracklist-master" role="list">
+        <div
+          className="release-tracklist-master imports-tracklist-master"
+          role="list"
+        >
           {tracks.map((track, index) => {
             const isSelected = track.id === selectedTrack.id
             return (
@@ -940,7 +997,9 @@ function TrackDraftList({
                   {track.position ?? index + 1}
                 </span>
                 <span className="release-tracklist-master-copy">
-                  <strong>{track.title || `Untitled track ${index + 1}`}</strong>
+                  <strong>
+                    {track.title || `Untitled track ${index + 1}`}
+                  </strong>
                   <span>
                     {effectiveTrackArtistCredits(track)
                       .map((credit) => importArtistCreditName(credit, artists))
@@ -966,7 +1025,9 @@ function TrackDraftList({
                 checked={selectedTrack.isSkipped}
                 type="checkbox"
                 onChange={(event) =>
-                  updateTrack(selectedTrack.id, { isSkipped: event.target.checked })
+                  updateTrack(selectedTrack.id, {
+                    isSkipped: event.target.checked,
+                  })
                 }
               />
               <span>Skip track</span>
@@ -1041,78 +1102,86 @@ function TrackDraftList({
                     Added track artists will appear here.
                   </p>
                 ) : (
-                  effectiveTrackArtistCredits(selectedTrack).map((credit, index) => {
-                    const artistName = importArtistCreditName(credit, artists)
-                    const roleName = dictionaryNameForCode(credit.role, creditRoleOptions)
+                  effectiveTrackArtistCredits(selectedTrack).map(
+                    (credit, index) => {
+                      const artistName = importArtistCreditName(credit, artists)
+                      const roleName = dictionaryNameForCode(
+                        credit.role,
+                        creditRoleOptions,
+                      )
 
-                    return (
-                      <div
-                        className="release-artist-chip"
-                        key={`${artistName}-${index}`}
-                      >
-                        <span className="release-artist-chip-name">
-                          {artistName || 'Unnamed artist'}
-                        </span>
-                        <label className="release-artist-chip-role">
-                          <span className="visually-hidden">
-                            Track role for {artistName || 'artist'}
+                      return (
+                        <div
+                          className="release-artist-chip"
+                          key={`${artistName}-${index}`}
+                        >
+                          <span className="release-artist-chip-name">
+                            {artistName || 'Unnamed artist'}
                           </span>
-                          <span
-                            className={
-                              credit.role
-                                ? 'release-artist-chip-role-face'
-                                : 'release-artist-chip-role-face release-artist-chip-role-face-unset'
-                            }
-                            aria-hidden="true"
-                          >
-                            <span>{roleName || 'Set role'}</span>
-                            <span className="release-artist-chip-role-caret" />
-                          </span>
-                          <select
-                            aria-label={`Track role for ${artistName || 'artist'}`}
-                            className="release-artist-chip-role-select"
-                            value={credit.role}
-                            onChange={(event) =>
-                              updateTrackArtistCredits(
-                                selectedTrack.id,
-                                effectiveTrackArtistCredits(selectedTrack).map(
-                                  (currentCredit, currentIndex) =>
+                          <label className="release-artist-chip-role">
+                            <span className="visually-hidden">
+                              Track role for {artistName || 'artist'}
+                            </span>
+                            <span
+                              className={
+                                credit.role
+                                  ? 'release-artist-chip-role-face'
+                                  : 'release-artist-chip-role-face release-artist-chip-role-face-unset'
+                              }
+                              aria-hidden="true"
+                            >
+                              <span>{roleName || 'Set role'}</span>
+                              <span className="release-artist-chip-role-caret" />
+                            </span>
+                            <select
+                              aria-label={`Track role for ${artistName || 'artist'}`}
+                              className="release-artist-chip-role-select"
+                              value={credit.role}
+                              onChange={(event) =>
+                                updateTrackArtistCredits(
+                                  selectedTrack.id,
+                                  effectiveTrackArtistCredits(
+                                    selectedTrack,
+                                  ).map((currentCredit, currentIndex) =>
                                     currentIndex === index
                                       ? {
                                           ...currentCredit,
                                           role: event.target.value,
                                         }
                                       : currentCredit,
+                                  ),
+                                )
+                              }
+                            >
+                              <option value="">Set role</option>
+                              {creditRoleOptions.map((role) => (
+                                <option key={role.id} value={role.code}>
+                                  {role.name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <button
+                            aria-label={`Remove ${artistName || 'artist'} from track`}
+                            className="release-artist-chip-remove"
+                            type="button"
+                            onClick={() =>
+                              updateTrackArtistCredits(
+                                selectedTrack.id,
+                                effectiveTrackArtistCredits(
+                                  selectedTrack,
+                                ).filter(
+                                  (_, currentIndex) => currentIndex !== index,
                                 ),
                               )
                             }
                           >
-                            <option value="">Set role</option>
-                            {creditRoleOptions.map((role) => (
-                              <option key={role.id} value={role.code}>
-                                {role.name}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <button
-                          aria-label={`Remove ${artistName || 'artist'} from track`}
-                          className="release-artist-chip-remove"
-                          type="button"
-                          onClick={() =>
-                            updateTrackArtistCredits(
-                              selectedTrack.id,
-                              effectiveTrackArtistCredits(selectedTrack).filter(
-                                (_, currentIndex) => currentIndex !== index,
-                              ),
-                            )
-                          }
-                        >
-                          ×
-                        </button>
-                      </div>
-                    )
-                  })
+                            ×
+                          </button>
+                        </div>
+                      )
+                    },
+                  )
                 )}
               </div>
             </div>
@@ -1126,14 +1195,18 @@ function TrackDraftList({
               ...effectiveTrackArtistCredits(selectedTrack)
                 .map((credit) => credit.artistId)
                 .filter((artistId): artistId is string => Boolean(artistId)),
-              ...(selectedTrack.selectedTrackId ? [selectedTrack.selectedTrackId] : []),
+              ...(selectedTrack.selectedTrackId
+                ? [selectedTrack.selectedTrackId]
+                : []),
             ]}
             onSelect={(suggestion) => {
               const isTrackSuggestion = selectedTrack.trackSuggestions.some(
                 (item) => item.id === suggestion.id,
               )
               if (isTrackSuggestion) {
-                updateTrack(selectedTrack.id, { selectedTrackId: suggestion.id })
+                updateTrack(selectedTrack.id, {
+                  selectedTrackId: suggestion.id,
+                })
                 return
               }
 
@@ -1173,7 +1246,9 @@ function SuggestionRow({
     <div className="imports-suggestions">
       {suggestions.slice(0, 4).map((suggestion) => (
         <button
-          className={selectedIds.includes(suggestion.id) ? 'is-selected' : undefined}
+          className={
+            selectedIds.includes(suggestion.id) ? 'is-selected' : undefined
+          }
           key={suggestion.id}
           type="button"
           onClick={() => onSelect(suggestion)}
@@ -1200,7 +1275,9 @@ function cloneDraft(draft: ReleaseImportDraft): ReleaseImportDraft {
     tracks: draft.tracks.map((track) => ({
       ...track,
       artistNames: [...track.artistNames],
-      artistCredits: (track.artistCredits ?? []).map((credit) => ({ ...credit })),
+      artistCredits: (track.artistCredits ?? []).map((credit) => ({
+        ...credit,
+      })),
       selectedArtistIds: [...track.selectedArtistIds],
     })),
   }
@@ -1228,13 +1305,17 @@ function draftValidationMessage(draft: ReleaseImportDraft) {
   if (
     !draft.isVariousArtists &&
     artistCredits.some(
-      (credit) => (credit.artistId || credit.name.trim()) && !credit.role.trim(),
+      (credit) =>
+        (credit.artistId || credit.name.trim()) && !credit.role.trim(),
     )
   ) {
     return 'Every release artist needs a role.'
   }
 
-  if (!draft.notOnLabel && labels.every((label) => !label.labelId && !label.name.trim())) {
+  if (
+    !draft.notOnLabel &&
+    labels.every((label) => !label.labelId && !label.name.trim())
+  ) {
     return 'Label is required unless Not on label is selected.'
   }
 
@@ -1245,7 +1326,8 @@ function draftValidationMessage(draft: ReleaseImportDraft) {
   if (
     draft.tracks.some((track) =>
       effectiveTrackArtistCredits(track).some(
-        (credit) => (credit.artistId || credit.name.trim()) && !credit.role.trim(),
+        (credit) =>
+          (credit.artistId || credit.name.trim()) && !credit.role.trim(),
       ),
     )
   ) {
@@ -1260,11 +1342,13 @@ function effectiveDraftArtistCredits(draft: ReleaseImportDraft) {
     return draft.artistCredits
   }
 
-  return draft.artistNames.map((name, index): ReleaseImportArtistCredit => ({
-    artistId: draft.selectedArtistIds[index] ?? null,
-    name,
-    role: 'mainArtist',
-  }))
+  return draft.artistNames.map(
+    (name, index): ReleaseImportArtistCredit => ({
+      artistId: draft.selectedArtistIds[index] ?? null,
+      name,
+      role: 'mainArtist',
+    }),
+  )
 }
 
 function effectiveDraftLabels(draft: ReleaseImportDraft) {
@@ -1335,11 +1419,13 @@ function effectiveTrackArtistCredits(track: ReleaseImportDraftTrack) {
     return track.artistCredits
   }
 
-  return track.artistNames.map((name, index): ReleaseImportArtistCredit => ({
-    artistId: track.selectedArtistIds[index] ?? null,
-    name,
-    role: 'mainArtist',
-  }))
+  return track.artistNames.map(
+    (name, index): ReleaseImportArtistCredit => ({
+      artistId: track.selectedArtistIds[index] ?? null,
+      name,
+      role: 'mainArtist',
+    }),
+  )
 }
 
 function withTrackArtistCredits(
@@ -1379,7 +1465,10 @@ function importArtistCreditName(
 }
 
 function dictionaryNameForCode(code: string, options: DictionaryEntry[]) {
-  return options.find((option) => option.code === code || option.name === code)?.name ?? code
+  return (
+    options.find((option) => option.code === code || option.name === code)
+      ?.name ?? code
+  )
 }
 
 function activeDictionaryOptions(

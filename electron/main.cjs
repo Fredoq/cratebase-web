@@ -76,7 +76,9 @@ async function startDesktopServer() {
       await serveStaticFile(distDir, request, response)
     } catch (error) {
       response.writeHead(500, { 'content-type': 'text/plain; charset=utf-8' })
-      response.end(error instanceof Error ? error.message : 'Desktop server error')
+      response.end(
+        error instanceof Error ? error.message : 'Desktop server error',
+      )
     }
   })
 
@@ -101,9 +103,10 @@ async function proxyApiRequest(request, response) {
   }
 
   const backendResponse = await fetch(targetUrl, {
-    body: request.method === 'GET' || request.method === 'HEAD'
-      ? undefined
-      : await readRequestBody(request),
+    body:
+      request.method === 'GET' || request.method === 'HEAD'
+        ? undefined
+        : await readRequestBody(request),
     headers,
     method: request.method,
     redirect: 'manual',

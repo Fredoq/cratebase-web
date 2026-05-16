@@ -947,7 +947,7 @@ export async function createRelease(
       ? []
       : (release.labels ?? releaseLabelsFromDisplay(release)).map(
           toReleaseLabelRequest,
-    ),
+        ),
     year: parseYear(release.year),
     releaseDate: release.releaseDate ?? null,
     genres: release.genres,
@@ -1026,7 +1026,7 @@ export async function updateRelease(
       ? []
       : (release.labels ?? releaseLabelsFromDisplay(release)).map(
           toReleaseLabelRequest,
-    ),
+        ),
     year: parseYear(release.year),
     releaseDate: release.releaseDate ?? null,
     genres: release.genres,
@@ -1928,7 +1928,9 @@ export async function getImportSession(sessionId: string) {
   return getJson<ReleaseImportSession>(`/api/imports/${sessionId}`)
 }
 
-export async function createDesktopFolderScan(request: DesktopFolderScanRequest) {
+export async function createDesktopFolderScan(
+  request: DesktopFolderScanRequest,
+) {
   return sendJson<ReleaseImportSession>(
     '/api/imports/desktop-folder-scans',
     'POST',
@@ -1991,7 +1993,11 @@ export async function loadImportPatterns() {
 }
 
 export async function createImportPattern(request: ImportPatternRequest) {
-  return sendJson<ImportPattern>('/api/settings/import-patterns', 'POST', request)
+  return sendJson<ImportPattern>(
+    '/api/settings/import-patterns',
+    'POST',
+    request,
+  )
 }
 
 export async function updateImportPattern(
@@ -2375,12 +2381,12 @@ function toReleaseRecord(
             item.targetType === 'release' && item.targetId === release.id,
         )
         .map((item) => ({
-        id: item.id,
-        medium: mediumLabel(item.medium, dictionaries),
-        status: ownedCopyStatusLabel(item.status),
-        storage: item.storageLocation ?? 'No storage recorded',
-        condition: conditionLabel(item.condition),
-        note: '',
+          id: item.id,
+          medium: mediumLabel(item.medium, dictionaries),
+          status: ownedCopyStatusLabel(item.status),
+          storage: item.storageLocation ?? 'No storage recorded',
+          condition: conditionLabel(item.condition),
+          note: '',
         })),
       ...releaseTrackDigitalCopies(release, ownedItems),
     ],
@@ -2417,7 +2423,9 @@ function releaseTrackDigitalCopies(
   release: ReleaseDto,
   ownedItems: OwnedItemDto[],
 ): OwnedCopy[] {
-  const trackIds = new Set((release.tracklist ?? []).map((track) => track.trackId))
+  const trackIds = new Set(
+    (release.tracklist ?? []).map((track) => track.trackId),
+  )
   const digitalItems = ownedItems.filter(
     (item) =>
       item.targetType === 'track' &&

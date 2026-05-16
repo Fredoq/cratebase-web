@@ -2595,9 +2595,15 @@
   padding: 0 9px;
 }
 
-.imports-editor .release-artist-composer label:not(.compact-checkbox) input:focus,
+.imports-editor
+  .release-artist-composer
+  label:not(.compact-checkbox)
+  input:focus,
 .imports-editor .track-artist-composer label:not(.compact-checkbox) input:focus,
-.imports-editor .release-label-composer label:not(.compact-checkbox) input:focus {
+.imports-editor
+  .release-label-composer
+  label:not(.compact-checkbox)
+  input:focus {
   border-color: #7f9480;
   outline: 3px solid rgba(81, 111, 82, 0.18);
 }
@@ -2729,7 +2735,9 @@
 }
 
 .import-pattern-grid {
-  grid-template-columns: minmax(150px, 0.5fr) minmax(220px, 1.5fr) minmax(80px, 120px) auto;
+  grid-template-columns:
+    minmax(150px, 0.5fr) minmax(220px, 1.5fr) minmax(80px, 120px)
+    auto;
 }
 
 .import-pattern-test-grid {
