@@ -46,15 +46,27 @@ async function walk(root, current, files, ignored) {
 
     const extension = path.extname(entry.name).toLowerCase()
     if (audioExtensions.has(extension)) {
-      files.push(await audioFile(root, fullPath, extension))
+      await addScannedFile(files, ignored, () =>
+        audioFile(root, fullPath, extension),
+      )
       continue
     }
 
     if (coverExtensions.has(extension)) {
-      files.push(await coverFile(root, fullPath, extension))
+      await addScannedFile(files, ignored, () =>
+        coverFile(root, fullPath, extension),
+      )
       continue
     }
 
+    ignored.count += 1
+  }
+}
+
+async function addScannedFile(files, ignored, createFile) {
+  try {
+    files.push(await createFile())
+  } catch {
     ignored.count += 1
   }
 }

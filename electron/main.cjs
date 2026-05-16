@@ -8,6 +8,13 @@ const backendBaseUrl =
   process.env.CRATEBASE_API_BASE_URL || 'http://localhost:5094'
 const devServerUrl = process.env.CRATEBASE_DESKTOP_DEV_SERVER
 const cookieJar = new Map()
+const strippedProxyResponseHeaders = new Set([
+  'connection',
+  'content-encoding',
+  'content-length',
+  'set-cookie',
+  'transfer-encoding',
+])
 
 let desktopServer = null
 
@@ -137,7 +144,7 @@ function copyProxyHeaders(headers) {
 function responseHeaders(headers) {
   const copied = {}
   headers.forEach((value, key) => {
-    if (key.toLowerCase() !== 'set-cookie') {
+    if (!strippedProxyResponseHeaders.has(key.toLowerCase())) {
       copied[key] = value
     }
   })
@@ -186,16 +193,28 @@ async function serveStaticFile(distDir, request, response) {
   const requestUrl = new URL(request.url ?? '/', 'http://127.0.0.1')
   const requestedPath =
     requestUrl.pathname === '/' ? '/index.html' : requestUrl.pathname
-  const candidate = path.normalize(
-    path.join(distDir, decodeURIComponent(requestedPath)),
-  )
-  const filePath = candidate.startsWith(distDir)
-    ? await existingFile(candidate)
-    : null
+  const candidate = safeStaticCandidate(distDir, requestedPath)
+  const filePath = candidate ? await existingFile(candidate) : null
   const finalPath = filePath ?? path.join(distDir, 'index.html')
 
   response.writeHead(200, { 'content-type': contentType(finalPath) })
   response.end(await fsp.readFile(finalPath))
+}
+
+function safeStaticCandidate(distDir, requestedPath) {
+  let decodedPath
+  try {
+    decodedPath = decodeURIComponent(requestedPath)
+  } catch {
+    return null
+  }
+
+  const candidate = path.normalize(path.join(distDir, decodedPath))
+  const relative = path.relative(distDir, candidate)
+  return relative === '' ||
+    (!relative.startsWith('..') && !path.isAbsolute(relative))
+    ? candidate
+    : null
 }
 
 async function existingFile(filePath) {
