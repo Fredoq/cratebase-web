@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clearCatalogForTests,
+  createLocalAgentImportToken,
   createOwnedItem,
   createRelease,
   createTrack,
@@ -1254,6 +1255,33 @@ describe('catalog API adapter', () => {
       ownedItems: [],
       relations: [],
       playlists: [],
+    })
+  })
+
+  it('creates local agent import tokens', async () => {
+    const fetchMock = vi.fn<Window['fetch']>()
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        token: 'pairing-token',
+        expiresAt: '2026-05-16T12:00:00Z',
+        agentBaseUrl: 'http://127.0.0.1:43817',
+        protocolVersion: 1,
+        macOsDownloadUrl: '/api/imports/local-agent-downloads/macos',
+        releaseFolderPatterns: ['[{catalogNumber}, {releaseDate}] {artist} - {title}'],
+        trackFilePatterns: ['{position} {title}'],
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(createLocalAgentImportToken()).resolves.toMatchObject({
+      token: 'pairing-token',
+      agentBaseUrl: 'http://127.0.0.1:43817',
+      protocolVersion: 1,
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/imports/local-agent-tokens', {
+      credentials: 'include',
+      method: 'POST',
     })
   })
 })

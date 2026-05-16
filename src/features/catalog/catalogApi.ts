@@ -5,6 +5,7 @@ import type {
 } from '../ownedItems/ownedItemsData'
 import type { PlaylistRecord } from '../playlists/playlistsData'
 import type {
+  OwnedCopy,
   ReleaseArtistCredit,
   ReleaseCoverImage,
   ReleaseLabel,
@@ -58,6 +59,122 @@ export type EntityRating = {
   targetType: RatingTargetType
   targetId: string
   value: number
+}
+
+export type ImportPatternKind = 'releaseFolder' | 'trackFile'
+
+export type ImportPattern = {
+  id: string
+  kind: ImportPatternKind
+  template: string
+  sortOrder: number
+  isActive: boolean
+  isBuiltin: boolean
+}
+
+export type ImportPatternRequest = {
+  kind: ImportPatternKind
+  template: string
+  sortOrder?: number
+  isActive?: boolean
+}
+
+export type ImportPatternTestResult = {
+  matched: boolean
+  fields: Record<string, string | null>
+  issues: string[]
+}
+
+export type EntitySuggestion = {
+  id: string
+  name: string
+  match: string
+}
+
+export type ImportIssue = {
+  code: string
+  message: string
+  severity: string
+}
+
+export type ReleaseImportDraftTrack = {
+  id: string
+  filePath: string
+  relativePath: string
+  format: string
+  sizeBytes: number
+  lastModifiedAt: string
+  durationSeconds?: number | null
+  position?: number | null
+  title: string
+  artistNames: string[]
+  artistCredits?: ReleaseImportArtistCredit[]
+  artistSuggestions: EntitySuggestion[]
+  trackSuggestions: EntitySuggestion[]
+  isSkipped: boolean
+  selectedTrackId?: string | null
+  selectedArtistIds: string[]
+  issues: ImportIssue[]
+}
+
+export type ReleaseImportArtistCredit = {
+  artistId?: string | null
+  name: string
+  role: string
+}
+
+export type ReleaseImportLabel = {
+  labelId?: string | null
+  name: string
+  catalogNumber?: string | null
+  hasNoCatalogNumber: boolean
+}
+
+export type ReleaseImportDraft = {
+  id: string
+  sourcePath: string
+  relativePath: string
+  status: 'needsReview' | 'ready' | 'confirmed' | 'skipped'
+  title: string
+  type: string
+  catalogNumber?: string | null
+  labelName?: string | null
+  releaseDate?: string | null
+  year?: number | null
+  isVariousArtists: boolean
+  notOnLabel: boolean
+  artistNames: string[]
+  artistCredits?: ReleaseImportArtistCredit[]
+  selectedArtistIds: string[]
+  artistSuggestions: EntitySuggestion[]
+  labels?: ReleaseImportLabel[]
+  genres: string[]
+  tags: string[]
+  coverPath?: string | null
+  issues: ImportIssue[]
+  tracks: ReleaseImportDraftTrack[]
+}
+
+export type ReleaseImportSession = {
+  id: string
+  sourceRoot: string
+  status: string
+  draftCount: number
+  trackCount: number
+  ignoredFileCount: number
+  createdAt: string
+  updatedAt: string
+  drafts?: ReleaseImportDraft[] | null
+}
+
+export type LocalAgentImportToken = {
+  token: string
+  expiresAt: string
+  agentBaseUrl: string
+  protocolVersion: number
+  macOsDownloadUrl: string
+  releaseFolderPatterns: string[]
+  trackFilePatterns: string[]
 }
 
 export type CatalogDictionaries = Record<DictionaryKind, DictionaryEntry[]>
@@ -368,6 +485,7 @@ type ReleaseDto = {
   type: string
   labelId?: string | null
   year?: number | null
+  releaseDate?: string | null
   genres: string[]
   tags: string[]
   coverImage?: ReleaseCoverImageDto | null
@@ -580,6 +698,7 @@ export async function loadCatalog(): Promise<CatalogState> {
       creditsByTarget,
       releaseDtosById,
       releaseTrackByTrackId,
+      ownedItemsResponse.items,
       dictionaries,
       ratingsByTarget,
     ),
@@ -664,6 +783,22 @@ async function getList<T>(path: string): Promise<ListResponse<T>> {
   }
 
   const body = (await response.json()) as ListResponse<T>
+  assertNoCollectionIds(body)
+
+  return body
+}
+
+async function getJson<T>(path: string): Promise<T> {
+  const response = await fetch(path, {
+    credentials: 'include',
+    method: 'GET',
+  })
+
+  if (!response.ok) {
+    throw await CatalogApiError.fromResponse(response)
+  }
+
+  const body = (await response.json()) as T
   assertNoCollectionIds(body)
 
   return body
@@ -786,8 +921,9 @@ export async function createRelease(
       ? []
       : (release.labels ?? releaseLabelsFromDisplay(release)).map(
           toReleaseLabelRequest,
-        ),
+    ),
     year: parseYear(release.year),
+    releaseDate: release.releaseDate ?? null,
     genres: release.genres,
     tags: release.tags,
     tracklist: tracks.map(toReleaseTracklistRequest),
@@ -864,8 +1000,9 @@ export async function updateRelease(
       ? []
       : (release.labels ?? releaseLabelsFromDisplay(release)).map(
           toReleaseLabelRequest,
-        ),
+    ),
     year: parseYear(release.year),
+    releaseDate: release.releaseDate ?? null,
     genres: release.genres,
     tags: release.tags,
     ...(tracks === undefined
@@ -1757,6 +1894,110 @@ export async function deleteRating(
   }
 }
 
+export async function loadImportSessions() {
+  return getAllPages<ReleaseImportSession>('/api/imports')
+}
+
+export async function getImportSession(sessionId: string) {
+  return getJson<ReleaseImportSession>(`/api/imports/${sessionId}`)
+}
+
+export async function createLocalAgentImportToken() {
+  return postEmpty<LocalAgentImportToken>('/api/imports/local-agent-tokens')
+}
+
+export async function updateImportDraft(
+  sessionId: string,
+  draft: ReleaseImportDraft,
+) {
+  return sendJson<ReleaseImportSession>(
+    `/api/imports/${sessionId}/drafts/${draft.id}`,
+    'PUT',
+    {
+      title: draft.title,
+      type: draft.type,
+      catalogNumber: draft.catalogNumber,
+      labelName: draft.labelName,
+      releaseDate: draft.releaseDate,
+      year: draft.year,
+      isVariousArtists: draft.isVariousArtists,
+      notOnLabel: draft.notOnLabel,
+      artistNames: draft.artistNames,
+      artistCredits: draft.artistCredits ?? [],
+      labels: draft.labels ?? [],
+      selectedArtistIds: draft.selectedArtistIds,
+      genres: draft.genres,
+      tags: draft.tags,
+      coverPath: draft.coverPath,
+      tracks: draft.tracks.map((track) => ({
+        id: track.id,
+        position: track.position,
+        title: track.title,
+        durationSeconds: track.durationSeconds,
+        artistNames: track.artistNames,
+        artistCredits: track.artistCredits ?? [],
+        selectedArtistIds: track.selectedArtistIds,
+        selectedTrackId: track.selectedTrackId,
+        isSkipped: track.isSkipped,
+      })),
+    },
+  )
+}
+
+export async function confirmImportDraft(sessionId: string, draftId: string) {
+  return postEmpty<ReleaseImportSession>(
+    `/api/imports/${sessionId}/drafts/${draftId}/confirm`,
+  )
+}
+
+export async function skipImportDraft(sessionId: string, draftId: string) {
+  return postEmpty<ReleaseImportSession>(
+    `/api/imports/${sessionId}/drafts/${draftId}/skip`,
+  )
+}
+
+export async function loadImportPatterns() {
+  return getAllPages<ImportPattern>('/api/settings/import-patterns')
+}
+
+export async function createImportPattern(request: ImportPatternRequest) {
+  return sendJson<ImportPattern>('/api/settings/import-patterns', 'POST', request)
+}
+
+export async function updateImportPattern(
+  patternId: string,
+  request: ImportPatternRequest,
+) {
+  return sendJson<ImportPattern>(
+    `/api/settings/import-patterns/${patternId}`,
+    'PUT',
+    request,
+  )
+}
+
+export async function deleteImportPattern(patternId: string) {
+  const response = await fetch(`/api/settings/import-patterns/${patternId}`, {
+    credentials: 'include',
+    method: 'DELETE',
+  })
+
+  if (!response.ok) {
+    throw await CatalogApiError.fromResponse(response)
+  }
+}
+
+export async function testImportPattern(
+  kind: ImportPatternKind,
+  template: string,
+  input: string,
+) {
+  return sendJson<ImportPatternTestResult>(
+    '/api/settings/import-patterns/test',
+    'POST',
+    { kind, template, input },
+  )
+}
+
 function updateDictionaryState(
   mutator: (dictionaries: CatalogDictionaries) => CatalogDictionaries,
 ) {
@@ -1830,6 +2071,22 @@ async function sendJson<T = unknown>(
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     method,
+  })
+
+  if (!response.ok) {
+    throw await CatalogApiError.fromResponse(response)
+  }
+
+  const responseBody = (await response.json()) as T
+  assertNoCollectionIds(responseBody)
+
+  return responseBody
+}
+
+async function postEmpty<T = unknown>(path: string): Promise<T> {
+  const response = await fetch(path, {
+    credentials: 'include',
+    method: 'POST',
   })
 
   if (!response.ok) {
@@ -2070,6 +2327,7 @@ function toReleaseRecord(
     artistCredits: releaseCredits,
     type: toReleaseType(release.type, dictionaries),
     year: release.year?.toString() ?? 'Unknown year',
+    releaseDate: release.releaseDate ?? undefined,
     label: labelDisplay,
     labels: releaseLabels,
     isVariousArtists: Boolean(release.isVariousArtists),
@@ -2080,18 +2338,22 @@ function toReleaseRecord(
     coverImage: release.coverImage
       ? toReleaseCoverImage(release.coverImage)
       : undefined,
-    ownedCopies: ownedItems
-      .filter(
-        (item) => item.targetType === 'release' && item.targetId === release.id,
-      )
-      .map((item) => ({
+    ownedCopies: [
+      ...ownedItems
+        .filter(
+          (item) =>
+            item.targetType === 'release' && item.targetId === release.id,
+        )
+        .map((item) => ({
         id: item.id,
         medium: mediumLabel(item.medium, dictionaries),
         status: ownedCopyStatusLabel(item.status),
         storage: item.storageLocation ?? 'No storage recorded',
         condition: conditionLabel(item.condition),
         note: '',
-      })),
+        })),
+      ...releaseTrackDigitalCopies(release, ownedItems),
+    ],
     ratings: targetRatings(ratingsByTarget, 'release', release.id),
   }
 }
@@ -2121,11 +2383,48 @@ function toReleaseCoverImageFromFile(
   }
 }
 
+function releaseTrackDigitalCopies(
+  release: ReleaseDto,
+  ownedItems: OwnedItemDto[],
+): OwnedCopy[] {
+  const trackIds = new Set((release.tracklist ?? []).map((track) => track.trackId))
+  const digitalItems = ownedItems.filter(
+    (item) =>
+      item.targetType === 'track' &&
+      trackIds.has(item.targetId) &&
+      item.medium.type === 'digital',
+  )
+
+  if (digitalItems.length === 0) {
+    return []
+  }
+
+  const formats = [
+    ...new Set(
+      digitalItems
+        .map((item) => item.medium.format?.toUpperCase())
+        .filter((format): format is string => Boolean(format)),
+    ),
+  ]
+
+  return [
+    {
+      id: `${release.id}:track-digital-files`,
+      medium: 'Digital',
+      status: 'Owned',
+      storage: `${digitalItems.length} track file${digitalItems.length === 1 ? '' : 's'}`,
+      condition: formats.length > 0 ? formats.join(', ') : 'Files recorded',
+      note: 'Track-level digital ownership',
+    },
+  ]
+}
+
 function toTrackRecord(
   track: TrackDto,
   creditsByTarget: Map<string, CreditDto[]>,
   releasesById: Map<string, ReleaseDto>,
   releaseTrackByTrackId: Map<string, ReleaseTrackContext[]>,
+  ownedItems: OwnedItemDto[],
   dictionaries: CatalogDictionaries,
   ratingsByTarget: Map<string, EntityRating[]>,
 ): TrackRecord {
@@ -2220,6 +2519,13 @@ function toTrackRecord(
     primaryAppearance?.versionNote ??
     'No version relation recorded'
   const trackArtist = mainCredit?.artist ?? releaseArtist ?? 'Unknown artist'
+  const digitalFileItem = ownedItems.find(
+    (item) =>
+      item.targetType === 'track' &&
+      item.targetId === track.id &&
+      item.medium.type === 'digital' &&
+      item.medium.path,
+  )
 
   return {
     id: track.id,
@@ -2242,12 +2548,12 @@ function toTrackRecord(
     releaseAppearances,
     relations: [],
     fileMetadata: {
-      format: 'None recorded',
-      path: 'No file linked',
+      format: digitalFileItem?.medium.format?.toUpperCase() ?? 'None recorded',
+      path: digitalFileItem?.medium.path ?? 'No file linked',
       bitrate: 'Not recorded',
       sampleRate: 'Not recorded',
       channels: 'Not recorded',
-      importedAt: 'Not recorded',
+      importedAt: digitalFileItem ? 'Imported file' : 'Not recorded',
       checksum: 'Not recorded',
     },
     ratings: targetRatings(ratingsByTarget, 'track', track.id),
