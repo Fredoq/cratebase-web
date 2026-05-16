@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain } = require('electron')
+const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron')
 const fsp = require('node:fs/promises')
 const http = require('node:http')
 const path = require('node:path')
@@ -68,7 +68,44 @@ function createWindow(appUrl) {
     width: 1440,
   })
 
+  const allowedOrigin = new URL(appUrl).origin
+  window.webContents.setWindowOpenHandler(({ url }) => {
+    if (isTrustedNavigation(url, allowedOrigin)) {
+      return { action: 'allow' }
+    }
+
+    openExternalNavigation(url)
+    return { action: 'deny' }
+  })
+  window.webContents.on('will-navigate', (event, url) => {
+    if (isTrustedNavigation(url, allowedOrigin)) {
+      return
+    }
+
+    event.preventDefault()
+    openExternalNavigation(url)
+  })
+
   window.loadURL(appUrl)
+}
+
+function isTrustedNavigation(url, allowedOrigin) {
+  try {
+    return new URL(url).origin === allowedOrigin
+  } catch {
+    return false
+  }
+}
+
+function openExternalNavigation(url) {
+  try {
+    const target = new URL(url)
+    if (target.protocol === 'http:' || target.protocol === 'https:') {
+      void shell.openExternal(target.toString())
+    }
+  } catch {
+    // Ignore malformed renderer-provided URLs.
+  }
 }
 
 async function startDesktopServer() {

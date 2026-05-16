@@ -95,6 +95,15 @@ export function ImportsWorkspace({
     setStatus('Loading session')
     try {
       const session = await getImportSession(sessionId)
+      if (!session) {
+        setSelectedSession(null)
+        setSelectedDraftId('')
+        setDraft(null)
+        setError('Import session was not found.')
+        setStatus('Load failed')
+        return
+      }
+
       const firstDraft = session.drafts?.[0] ?? null
       setSelectedSession(session)
       setSelectedDraftId(firstDraft?.id ?? '')
@@ -319,14 +328,22 @@ function SessionsTable({
                   session.id === selectedSessionId ? 'is-selected' : undefined
                 }
                 key={session.id}
-                onClick={() => {
-                  void onSelect(session.id)
-                }}
               >
                 <td data-label="Root">
-                  <span className="row-title">
-                    <strong>{session.sourceRoot}</strong>
-                  </span>
+                  <button
+                    aria-current={
+                      session.id === selectedSessionId ? 'true' : undefined
+                    }
+                    className="imports-row-select-button"
+                    type="button"
+                    onClick={() => {
+                      void onSelect(session.id)
+                    }}
+                  >
+                    <span className="row-title">
+                      <strong>{session.sourceRoot}</strong>
+                    </span>
+                  </button>
                 </td>
                 <td data-label="Drafts">{session.draftCount}</td>
                 <td data-label="Tracks">{session.trackCount}</td>
@@ -366,15 +383,23 @@ function DraftsTable({
                   draft.id === selectedDraftId ? 'is-selected' : undefined
                 }
                 key={draft.id}
-                onClick={() => onSelect(draft.id)}
               >
                 <td data-label="Release">
-                  <span className="row-title">
-                    <strong>{draft.title}</strong>
-                    <span>
-                      {draft.artistNames.join(', ') || 'Various Artists'}
+                  <button
+                    aria-current={
+                      draft.id === selectedDraftId ? 'true' : undefined
+                    }
+                    className="imports-row-select-button"
+                    type="button"
+                    onClick={() => onSelect(draft.id)}
+                  >
+                    <span className="row-title">
+                      <strong>{draft.title}</strong>
+                      <span>
+                        {draft.artistNames.join(', ') || 'Various Artists'}
+                      </span>
                     </span>
-                  </span>
+                  </button>
                 </td>
                 <td data-label="Status">{draft.status}</td>
                 <td data-label="Tracks">{draft.tracks.length}</td>
@@ -1321,6 +1346,19 @@ function draftValidationMessage(draft: ReleaseImportDraft) {
 
   if (draft.tracks.some((track) => !track.isSkipped && !track.title.trim())) {
     return 'Every included track needs a title.'
+  }
+
+  if (
+    draft.isVariousArtists &&
+    draft.tracks.some(
+      (track) =>
+        !track.isSkipped &&
+        effectiveTrackArtistCredits(track).every(
+          (credit) => !credit.artistId && !credit.name.trim(),
+        ),
+    )
+  ) {
+    return 'Every included track needs at least one artist for Various Artists releases.'
   }
 
   if (

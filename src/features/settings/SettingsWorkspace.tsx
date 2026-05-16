@@ -364,29 +364,84 @@ function ImportPatternSettings({
   const [status, setStatus] = useState('Ready')
 
   useEffect(() => {
-    void refresh()
+    let isMounted = true
+
+    void loadImportPatterns()
+      .then((response) => {
+        if (isMounted) {
+          setPatterns(response.items)
+        }
+      })
+      .catch((error: unknown) => {
+        console.error(error)
+        if (isMounted) {
+          setStatus('Failed to load patterns')
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
   }, [])
 
-  async function refresh() {
+  async function loadPatterns() {
     const response = await loadImportPatterns()
     setPatterns(response.items)
   }
 
   async function createPattern() {
-    await createImportPattern({
-      kind,
-      template,
-      sortOrder: parseSortOrder(sortOrder, 100),
-      isActive: true,
-    })
-    await refresh()
-    setStatus('Pattern saved')
+    try {
+      await createImportPattern({
+        kind,
+        template,
+        sortOrder: parseSortOrder(sortOrder, 100),
+        isActive: true,
+      })
+      await loadPatterns()
+      setStatus('Pattern saved')
+    } catch (error) {
+      console.error(error)
+      setStatus('Failed to save pattern')
+    }
   }
 
   async function testPattern() {
-    const result = await testImportPattern(kind, template, testInput)
-    setPreview(JSON.stringify(result.fields, null, 2))
-    setStatus(result.matched ? 'Pattern matched' : 'No match')
+    try {
+      const result = await testImportPattern(kind, template, testInput)
+      setPreview(JSON.stringify(result.fields, null, 2))
+      setStatus(result.matched ? 'Pattern matched' : 'No match')
+    } catch (error) {
+      console.error(error)
+      setPreview('')
+      setStatus('Test failed')
+    }
+  }
+
+  async function togglePattern(pattern: ImportPattern) {
+    try {
+      await updateImportPattern(pattern.id, {
+        kind: pattern.kind,
+        template: pattern.template,
+        sortOrder: pattern.sortOrder,
+        isActive: !pattern.isActive,
+      })
+      await loadPatterns()
+      setStatus('Pattern updated')
+    } catch (error) {
+      console.error(error)
+      setStatus('Failed to update pattern')
+    }
+  }
+
+  async function removePattern(patternId: string) {
+    try {
+      await deleteImportPattern(patternId)
+      await loadPatterns()
+      setStatus('Pattern deleted')
+    } catch (error) {
+      console.error(error)
+      setStatus('Failed to delete pattern')
+    }
   }
 
   return (
@@ -467,6 +522,15 @@ function ImportPatternSettings({
           </div>
           <div className="catalog-table-wrap">
             <table className="catalog-table">
+              <thead>
+                <tr>
+                  <th scope="col">Kind</th>
+                  <th scope="col">Template</th>
+                  <th scope="col">Sort</th>
+                  <th scope="col">State</th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
               <tbody>
                 {patterns.map((pattern) => (
                   <tr key={pattern.id}>
@@ -482,12 +546,7 @@ function ImportPatternSettings({
                         disabled={pattern.isBuiltin}
                         type="button"
                         onClick={() => {
-                          void updateImportPattern(pattern.id, {
-                            kind: pattern.kind,
-                            template: pattern.template,
-                            sortOrder: pattern.sortOrder,
-                            isActive: !pattern.isActive,
-                          }).then(refresh)
+                          void togglePattern(pattern)
                         }}
                       >
                         {pattern.isActive ? 'Pause' : 'Activate'}
@@ -497,7 +556,7 @@ function ImportPatternSettings({
                         disabled={pattern.isBuiltin}
                         type="button"
                         onClick={() => {
-                          void deleteImportPattern(pattern.id).then(refresh)
+                          void removePattern(pattern.id)
                         }}
                       >
                         <Trash2 size={14} />

@@ -2382,7 +2382,7 @@
 }
 
 .imports-layout {
-  grid-template-columns: minmax(360px, 0.78fr) minmax(620px, 1.22fr);
+  grid-template-columns: minmax(360px, 0.72fr) minmax(0, 1.28fr);
 }
 
 .imports-session-table td:first-child {
@@ -2401,6 +2401,23 @@
   line-height: 1.25;
 }
 
+.imports-row-select-button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-align: left;
+}
+
+.imports-row-select-button:focus-visible {
+  border-radius: var(--radius-sm);
+  outline: 3px solid rgba(81, 111, 82, 0.18);
+  outline-offset: 3px;
+}
+
 .imports-scan-body,
 .imports-editor {
   display: grid;
@@ -2409,7 +2426,11 @@
 }
 
 .imports-path-field {
-  max-width: none;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .imports-folder-control,
@@ -2815,6 +2836,7 @@
 @media (max-width: 1100px) {
   .app-shell,
   .catalog-layout,
+  .imports-layout,
   .section-workspace {
     grid-template-columns: 1fr;
   }

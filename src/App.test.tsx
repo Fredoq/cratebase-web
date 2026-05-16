@@ -923,7 +923,9 @@ describe('App', () => {
       )
 
       expect(pickAndScan).toHaveBeenCalledOnce()
-      expect(screen.getByText('Folder selection cancelled')).toBeInTheDocument()
+      expect(
+        await screen.findByText('Folder selection cancelled'),
+      ).toBeInTheDocument()
     } finally {
       window.cratebaseDesktop = originalDesktopBridge
     }

@@ -814,13 +814,17 @@ async function getList<T>(path: string): Promise<ListResponse<T>> {
   return body
 }
 
-async function getJson<T>(path: string): Promise<T> {
+async function getJson<T>(path: string): Promise<T | null> {
   const response = await fetch(path, {
     credentials: 'include',
     method: 'GET',
   })
 
   if (!response.ok) {
+    if (response.status === 404) {
+      return null
+    }
+
     throw await CatalogApiError.fromResponse(response)
   }
 
@@ -2430,7 +2434,7 @@ function releaseTrackDigitalCopies(
     (item) =>
       item.targetType === 'track' &&
       trackIds.has(item.targetId) &&
-      item.medium.type === 'digital',
+      isDigitalFileMedium(item.medium),
   )
 
   if (digitalItems.length === 0) {
@@ -2561,8 +2565,7 @@ function toTrackRecord(
     (item) =>
       item.targetType === 'track' &&
       item.targetId === track.id &&
-      item.medium.type === 'digital' &&
-      item.medium.path,
+      isDigitalFileMedium(item.medium),
   )
 
   return {
@@ -3043,6 +3046,14 @@ function isManualDigitalPlaceholder(medium: MediumDto) {
   return (
     medium.type === 'digital' &&
     medium.path === '/cratebase/manual-entry-placeholder'
+  )
+}
+
+function isDigitalFileMedium(medium: MediumDto) {
+  return (
+    medium.type === 'digital' &&
+    Boolean(medium.path) &&
+    !isManualDigitalPlaceholder(medium)
   )
 }
 
