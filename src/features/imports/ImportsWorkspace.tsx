@@ -1,8 +1,8 @@
-import { Check, Download, FolderOpen, RefreshCw, Save, X } from 'lucide-react'
+import { Check, Download, FolderOpen, Save, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import {
   confirmImportDraft,
-  createLocalAgentImportToken,
+  createDesktopFolderScan,
   getImportSession,
   loadImportSessions,
   skipImportDraft,
@@ -11,7 +11,6 @@ import {
   type CatalogDictionaries,
   type DictionaryEntry,
   type EntitySuggestion,
-  type LocalAgentImportToken,
   type ReleaseImportArtistCredit,
   type ReleaseImportDraft,
   type ReleaseImportLabel,
@@ -26,24 +25,14 @@ type ImportsWorkspaceProps = {
   onCatalogChanged: () => void
 }
 
-type LocalAgentStatus = 'checking' | 'available' | 'unavailable' | 'unsupported'
-
-type LocalAgentHealth = {
-  service: string
-  version: string
-  protocolVersion: number
-  status: string
-}
-
-const defaultAgentBaseUrl = 'http://127.0.0.1:43817'
-const macOsDownloadUrl = '/api/imports/local-agent-downloads/macos'
+const macOsDownloadUrl = '/api/imports/desktop-downloads/macos'
 
 export function ImportsWorkspace({
   artists,
   dictionaries,
   onCatalogChanged,
 }: ImportsWorkspaceProps) {
-  const localAgentSupported = isMacOs()
+  const isDesktop = isCratebaseDesktop()
   const releaseTypeOptions = activeReleaseTypeOptions(dictionaries)
   const creditRoleOptions = activeDictionaryOptions(dictionaries, 'creditRole')
   const [sessions, setSessions] = useState<ReleaseImportSession[]>([])
@@ -51,15 +40,7 @@ export function ImportsWorkspace({
     useState<ReleaseImportSession | null>(null)
   const [selectedDraftId, setSelectedDraftId] = useState('')
   const [draft, setDraft] = useState<ReleaseImportDraft | null>(null)
-  const [agentStatus, setAgentStatus] = useState<LocalAgentStatus>(
-    localAgentSupported ? 'checking' : 'unsupported',
-  )
-  const [agentHealth, setAgentHealth] = useState<LocalAgentHealth | null>(null)
-  const [status, setStatus] = useState(
-    localAgentSupported
-      ? 'Ready'
-      : 'Local agent is not available yet for this operating system.',
-  )
+  const [status, setStatus] = useState('Ready')
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -68,17 +49,7 @@ export function ImportsWorkspace({
     }
 
     void refreshSessions()
-    if (!localAgentSupported) {
-      return
-    }
-
-    void refreshAgentStatus()
-    const intervalId = window.setInterval(() => {
-      void refreshAgentStatus(false)
-    }, 3000)
-
-    return () => window.clearInterval(intervalId)
-  }, [localAgentSupported])
+  }, [])
 
   async function refreshSessions() {
     try {
@@ -90,35 +61,23 @@ export function ImportsWorkspace({
     }
   }
 
-  async function refreshAgentStatus(showChecking = true) {
-    if (showChecking) {
-      setAgentStatus('checking')
-    }
-
-    try {
-      const health = await getLocalAgentHealth(defaultAgentBaseUrl)
-      setAgentHealth(health)
-      setAgentStatus(health.status === 'ready' ? 'available' : 'unavailable')
-      setStatus(health.status === 'ready' ? 'Local agent is ready.' : 'Local agent is not ready.')
-    } catch {
-      setAgentHealth(null)
-      setAgentStatus('unavailable')
-      if (showChecking) {
-        setStatus('Local agent is not running.')
-      }
-    }
-  }
-
   async function chooseLocalFolder() {
-    if (agentStatus !== 'available') {
-      setError('Local agent is not running.')
+    if (!window.cratebaseDesktop) {
+      setError('Local folder import is available in the macOS desktop app.')
       return
     }
 
     setStatus('Waiting for folder selection')
     try {
-      const token = await createLocalAgentImportToken()
-      const session = await startLocalAgentScan(token)
+      const result = await window.cratebaseDesktop.imports.pickAndScan()
+      if (result.cancelled) {
+        setStatus('Folder selection cancelled')
+        setError(null)
+        return
+      }
+
+      setStatus('Scanning folder')
+      const session = await createDesktopFolderScan(result.scan)
       const firstDraft = session.drafts?.[0] ?? null
       setSelectedSession(session)
       setSelectedDraftId(firstDraft?.id ?? '')
@@ -219,25 +178,24 @@ export function ImportsWorkspace({
               <h2>Local folder import</h2>
               <p>Audio: FLAC, MP3, WAV, OGG, M4A. Covers: JPG, PNG, WEBP.</p>
             </div>
-            <button
-              className="button button-primary"
-              disabled={agentStatus !== 'available'}
-              type="button"
-              onClick={() => {
-                void chooseLocalFolder()
-              }}
-            >
-              <FolderOpen size={16} /> Choose local folder
-            </button>
+            {isDesktop ? (
+              <button
+                className="button button-primary"
+                type="button"
+                onClick={() => {
+                  void chooseLocalFolder()
+                }}
+              >
+                <FolderOpen size={16} /> Choose local folder
+              </button>
+            ) : (
+              <a className="button button-secondary" href={macOsDownloadUrl}>
+                <Download size={16} /> Download macOS app
+              </a>
+            )}
           </div>
           <div className="imports-scan-body">
-            <LocalAgentPanel
-              health={agentHealth}
-              status={agentStatus}
-              onRefresh={() => {
-                void refreshAgentStatus()
-              }}
-            />
+            <ImportSourcePanel isDesktop={isDesktop} />
             <p className={error ? 'imports-error' : 'imports-status'}>
               {error ?? status}
             </p>
@@ -306,39 +264,14 @@ export function ImportsWorkspace({
   )
 }
 
-function LocalAgentPanel({
-  status,
-  health,
-  onRefresh,
-}: {
-  status: LocalAgentStatus
-  health: LocalAgentHealth | null
-  onRefresh: () => void
-}) {
-  if (status === 'available') {
+function ImportSourcePanel({ isDesktop }: { isDesktop: boolean }) {
+  if (isDesktop) {
     return (
       <div className="imports-agent-card">
         <div>
-          <span>Local agent</span>
-          <strong>Available</strong>
-          <small>
-            {health ? `${health.version}, protocol ${health.protocolVersion}` : defaultAgentBaseUrl}
-          </small>
-        </div>
-        <button className="button button-secondary" type="button" onClick={onRefresh}>
-          <RefreshCw size={16} /> Refresh
-        </button>
-      </div>
-    )
-  }
-
-  if (status === 'unsupported') {
-    return (
-      <div className="imports-agent-card">
-        <div>
-          <span>Local agent</span>
-          <strong>Unavailable</strong>
-          <small>Local agent is not available yet for this operating system.</small>
+          <span>Desktop app</span>
+          <strong>Local import enabled</strong>
+          <small>Choose a folder on this Mac and review parsed drafts here.</small>
         </div>
       </div>
     )
@@ -347,17 +280,9 @@ function LocalAgentPanel({
   return (
     <div className="imports-agent-card">
       <div>
-        <span>Local agent</span>
-        <strong>{status === 'checking' ? 'Checking' : 'Not running'}</strong>
-        <small>macOS local folder import requires Cratebase Local Agent.</small>
-      </div>
-      <div className="imports-folder-picker-actions">
-        <a className="button button-secondary" href={macOsDownloadUrl}>
-          <Download size={16} /> Download agent
-        </a>
-        <button className="button button-secondary" type="button" onClick={onRefresh}>
-          <RefreshCw size={16} /> Refresh
-        </button>
+        <span>Desktop app</span>
+        <strong>Local folder import is desktop-only</strong>
+        <small>Web review remains available; local folder selection runs in the macOS app.</small>
       </div>
     </div>
   )
@@ -1265,46 +1190,6 @@ function SuggestionRow({
   )
 }
 
-async function getLocalAgentHealth(agentBaseUrl: string) {
-  const response = await fetch(`${agentBaseUrl}/health`, {
-    method: 'GET',
-  })
-
-  if (!response.ok) {
-    throw new Error('Local agent is not available.')
-  }
-
-  return (await response.json()) as LocalAgentHealth
-}
-
-async function startLocalAgentScan(token: LocalAgentImportToken) {
-  const response = await fetch(`${token.agentBaseUrl}/v1/imports/pick-and-scan`, {
-    body: JSON.stringify({
-      backendBaseUrl: window.location.origin,
-      token: token.token,
-      releaseFolderPatterns: token.releaseFolderPatterns,
-      trackFilePatterns: token.trackFilePatterns,
-    }),
-    headers: { 'Content-Type': 'application/json' },
-    method: 'POST',
-  })
-
-  if (!response.ok) {
-    throw new Error(await localAgentErrorMessage(response))
-  }
-
-  return (await response.json()) as ReleaseImportSession
-}
-
-async function localAgentErrorMessage(response: Response) {
-  try {
-    const body = (await response.json()) as { message?: string }
-    return body.message ?? 'Local agent request failed.'
-  } catch {
-    return 'Local agent request failed.'
-  }
-}
-
 function cloneDraft(draft: ReleaseImportDraft): ReleaseImportDraft {
   return {
     ...draft,
@@ -1535,10 +1420,6 @@ function skipServerImportRequests() {
   )
 }
 
-function isMacOs() {
-  const userAgentData = 'userAgentData' in navigator
-    ? (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData
-    : undefined
-  const platform = userAgentData?.platform ?? navigator.platform
-  return /mac/i.test(platform)
+function isCratebaseDesktop() {
+  return window.cratebaseDesktop?.isDesktop === true
 }

@@ -167,14 +167,40 @@ export type ReleaseImportSession = {
   drafts?: ReleaseImportDraft[] | null
 }
 
-export type LocalAgentImportToken = {
-  token: string
-  expiresAt: string
-  agentBaseUrl: string
-  protocolVersion: number
-  macOsDownloadUrl: string
-  releaseFolderPatterns: string[]
-  trackFilePatterns: string[]
+export type DesktopFolderScanRequest = {
+  sourceRoot: string
+  files: DesktopFolderScanFileRequest[]
+  ignoredFileCount: number
+}
+
+export type DesktopFolderScanFileRequest = {
+  filePath: string
+  relativePath: string
+  format?: string | null
+  sizeBytes: number
+  lastModifiedAt: string
+  audioMetadata?: DesktopAudioMetadataRequest | null
+  coverArtifact?: DesktopCoverArtifactRequest | null
+}
+
+export type DesktopAudioMetadataRequest = {
+  title?: string | null
+  artists?: string[] | null
+  albumTitle?: string | null
+  albumArtists?: string[] | null
+  catalogNumber?: string | null
+  releaseDate?: string | null
+  year?: number | null
+  durationSeconds?: number | null
+  trackNumber?: number | null
+}
+
+export type DesktopCoverArtifactRequest = {
+  fileName: string
+  extension: string
+  contentType: string
+  sizeBytes: number
+  contentBase64: string
 }
 
 export type CatalogDictionaries = Record<DictionaryKind, DictionaryEntry[]>
@@ -1902,8 +1928,12 @@ export async function getImportSession(sessionId: string) {
   return getJson<ReleaseImportSession>(`/api/imports/${sessionId}`)
 }
 
-export async function createLocalAgentImportToken() {
-  return postEmpty<LocalAgentImportToken>('/api/imports/local-agent-tokens')
+export async function createDesktopFolderScan(request: DesktopFolderScanRequest) {
+  return sendJson<ReleaseImportSession>(
+    '/api/imports/desktop-folder-scans',
+    'POST',
+    request,
+  )
 }
 
 export async function updateImportDraft(
