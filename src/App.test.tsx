@@ -905,6 +905,28 @@ describe('App', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('shows portable export downloads for the active collection', () => {
+    window.history.pushState({}, '', '/exports')
+
+    render(<App />)
+
+    expect(
+      screen.getByRole('region', { name: 'Exports workspace' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText(`${releaseRecords.length} releases`)).toBeVisible()
+    expect(screen.getByText(`${trackRecords.length} tracks`)).toBeVisible()
+    expect(
+      screen.getByText(`${ownedItemRecords.length} owned items`),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('link', { name: /download json/i }),
+    ).toHaveAttribute('href', '/api/exports/json')
+    expect(screen.getByRole('link', { name: /download csv/i })).toHaveAttribute(
+      'href',
+      '/api/exports/csv',
+    )
+  })
+
   it('enables local folder import in desktop mode', async () => {
     window.history.pushState({}, '', '/imports')
     const pickAndScan = vi.fn().mockResolvedValue({ cancelled: true })
