@@ -1,4 +1,5 @@
 import { Database, Download, FileArchive, FileJson } from 'lucide-react'
+import { useState } from 'react'
 import type { ArtistRecord } from '../artists/artistsData'
 import type {
   CatalogDictionaries,
@@ -19,6 +20,13 @@ type ExportsWorkspaceProps = {
   relations: RelationRecord[]
   releases: ReleaseRecord[]
   tracks: TrackRecord[]
+}
+
+type ExportFormat = 'csv' | 'json'
+
+const exportFormatLabels: Record<ExportFormat, string> = {
+  csv: 'CSV',
+  json: 'JSON',
 }
 
 export function ExportsWorkspace({
@@ -43,6 +51,37 @@ export function ExportsWorkspace({
     `${relations.length} relations`,
     `${playlists.length} playlists`,
   ]
+  const isDesktop = isCratebaseDesktop()
+  const [pendingExport, setPendingExport] = useState<ExportFormat | null>(null)
+  const [downloadStatus, setDownloadStatus] = useState('Ready')
+  const [downloadError, setDownloadError] = useState<string | null>(null)
+
+  async function downloadDesktopExport(format: ExportFormat) {
+    if (!window.cratebaseDesktop?.exports) {
+      setDownloadError('Desktop export is unavailable.')
+      return
+    }
+
+    const label = exportFormatLabels[format]
+    setPendingExport(format)
+    setDownloadStatus(`Saving ${label} export`)
+    setDownloadError(null)
+
+    try {
+      const result = await window.cratebaseDesktop.exports.download(format)
+      if (result.cancelled) {
+        setDownloadStatus(`${label} export cancelled`)
+        return
+      }
+
+      setDownloadStatus(`${label} export saved`)
+    } catch (error) {
+      setDownloadError(errorMessage(error))
+      setDownloadStatus(`${label} export failed`)
+    } finally {
+      setPendingExport(null)
+    }
+  }
 
   return (
     <section className="exports-layout" aria-label="Exports workspace">
@@ -67,17 +106,34 @@ export function ExportsWorkspace({
           <div className="exports-downloads" aria-label="Download formats">
             <ExportDownload
               description="Single structured snapshot for backup and programmatic use."
+              format="json"
               href="/api/exports/json"
               icon="json"
+              isDesktop={isDesktop}
+              isPending={pendingExport === 'json'}
               label="Download JSON"
+              onDesktopDownload={downloadDesktopExport}
             />
             <ExportDownload
               description="Zip archive with separate CSV tables for spreadsheets."
+              format="csv"
               href="/api/exports/csv"
               icon="csv"
+              isDesktop={isDesktop}
+              isPending={pendingExport === 'csv'}
               label="Download CSV"
+              onDesktopDownload={downloadDesktopExport}
             />
           </div>
+
+          {isDesktop ? (
+            <p
+              className={downloadError ? 'exports-error' : 'exports-status'}
+              role={downloadError ? 'alert' : 'status'}
+            >
+              {downloadError ?? downloadStatus}
+            </p>
+          ) : null}
         </div>
       </section>
 
@@ -110,16 +166,24 @@ export function ExportsWorkspace({
 
 type ExportDownloadProps = {
   description: string
+  format: ExportFormat
   href: string
   icon: 'csv' | 'json'
+  isDesktop: boolean
+  isPending: boolean
   label: string
+  onDesktopDownload: (format: ExportFormat) => Promise<void>
 }
 
 function ExportDownload({
   description,
+  format,
   href,
   icon,
+  isDesktop,
+  isPending,
   label,
+  onDesktopDownload,
 }: ExportDownloadProps) {
   const Icon = icon === 'json' ? FileJson : FileArchive
 
@@ -132,10 +196,32 @@ function ExportDownload({
         <strong>{label.replace('Download ', '')}</strong>
         <small>{description}</small>
       </span>
-      <a className="button button-primary" href={href} download>
-        <Download size={15} aria-hidden="true" />
-        {label}
-      </a>
+      {isDesktop ? (
+        <button
+          className="button button-primary"
+          disabled={isPending}
+          type="button"
+          onClick={() => {
+            void onDesktopDownload(format)
+          }}
+        >
+          <Download size={15} aria-hidden="true" />
+          {label}
+        </button>
+      ) : (
+        <a className="button button-primary" href={href} download>
+          <Download size={15} aria-hidden="true" />
+          {label}
+        </a>
+      )}
     </div>
   )
+}
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Export failed.'
+}
+
+function isCratebaseDesktop() {
+  return window.cratebaseDesktop?.isDesktop === true
 }

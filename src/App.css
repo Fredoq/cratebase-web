@@ -1540,6 +1540,17 @@
   line-height: 1.4;
 }
 
+.exports-status,
+.exports-error {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.exports-error {
+  color: #8d2f2f;
+}
+
 .exports-side-panel {
   display: grid;
   gap: 14px;
