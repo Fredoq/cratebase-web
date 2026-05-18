@@ -209,9 +209,7 @@ function buildLabelSummary(
   )
   const releaseIds = new Set(labelReleases.map((release) => release.id))
   const labelOwnedItems = ownedItems.filter(
-    (item) =>
-      (item.releaseId && releaseIds.has(item.releaseId)) ||
-      labelReleases.some((release) => release.title === item.releaseTitle),
+    (item) => item.releaseId !== undefined && releaseIds.has(item.releaseId),
   )
 
   return {

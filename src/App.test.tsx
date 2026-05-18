@@ -120,7 +120,15 @@ function graphResponseForLabel() {
       summary: '1 release in the collection.',
     },
     sections: {
-      artists: [],
+      artists: [
+        {
+          id: 'artist-1',
+          type: 'artist',
+          title: 'New Order',
+          subtitle: 'Band',
+          relation: 'Main artist',
+        },
+      ],
       releases: [
         {
           id: 'release-1',
@@ -582,6 +590,14 @@ describe('App', () => {
     expect(
       screen.getByText('Physical media without digital copy'),
     ).toBeInTheDocument()
+    const detailPanel = await screen.findByRole('complementary', {
+      name: 'Factory Records',
+    })
+    expect(
+      within(detailSection(detailPanel, 'Artists')).getByRole('link', {
+        name: 'New Order',
+      }),
+    ).toHaveAttribute('href', '/artists?artist=artist-1')
     expect(
       fetchMock.mock.calls.some(
         ([url]) => typeof url === 'string' && url.startsWith('/api/search?'),
@@ -591,6 +607,27 @@ describe('App', () => {
       credentials: 'include',
       method: 'GET',
     })
+  })
+
+  it('sends the server credits saved view to catalog search', async () => {
+    window.history.pushState({}, '', '/catalog?savedView=credits')
+    clearCatalogForTests()
+    const fetchMock = mockFetch(
+      ...emptyCatalogLoadResponses(),
+      searchResponseWithLabel(),
+      graphResponseForLabel(),
+    )
+
+    render(<App />)
+
+    await screen.findByRole('row', { name: /Factory Records/i })
+
+    const searchCall = fetchMock.mock.calls.find(
+      ([url]) => typeof url === 'string' && url.startsWith('/api/search?'),
+    )
+    expect(searchCall?.[0]).toEqual(
+      expect.stringContaining('savedView=credits'),
+    )
   })
 
   it('opens a label workspace from a server-backed catalog result', async () => {
@@ -617,6 +654,110 @@ describe('App', () => {
     )
     expect(
       screen.getByRole('heading', { name: 'Factory Records' }),
+    ).toBeInTheDocument()
+  })
+
+  it('keeps label owned coverage tied to release ids instead of shared titles', async () => {
+    window.history.pushState({}, '', '/labels')
+    seedCatalogForTests({
+      artists: [],
+      labels: [
+        { id: 'source-label', name: 'Source Label' },
+        { id: 'other-label', name: 'Other Label' },
+      ],
+      releases: [
+        {
+          id: 'source-release',
+          title: 'Greatest Hits',
+          artist: 'Source Artist',
+          type: 'Album',
+          year: '1990',
+          label: 'Source Label',
+          labels: [
+            {
+              labelId: 'source-label',
+              name: 'Source Label',
+              catalogNumber: 'SRC-1',
+              hasNoCatalogNumber: false,
+            },
+          ],
+          genres: [],
+          tags: [],
+          releaseNotes: 'Source label release with a shared title.',
+          ownedCopies: [],
+        },
+        {
+          id: 'other-release',
+          title: 'Greatest Hits',
+          artist: 'Other Artist',
+          type: 'Album',
+          year: '1991',
+          label: 'Other Label',
+          labels: [
+            {
+              labelId: 'other-label',
+              name: 'Other Label',
+              catalogNumber: 'OTH-1',
+              hasNoCatalogNumber: false,
+            },
+          ],
+          genres: [],
+          tags: [],
+          releaseNotes: 'Other label release with the same title.',
+          ownedCopies: [],
+        },
+      ],
+      tracks: [],
+      ownedItems: [
+        {
+          id: 'other-copy',
+          title: 'Other Greatest Hits CD',
+          releaseId: 'other-release',
+          releaseTitle: 'Greatest Hits',
+          artist: 'Other Artist',
+          medium: 'CD',
+          status: 'Owned',
+          statusTone: 'green',
+          storage: 'Shelf B',
+          condition: 'Very Good',
+          acquisition: 'Personal collection',
+          copyNotes: 'Copy belongs to the other label release.',
+          linkedType: 'Release',
+          fileFormat: 'None recorded',
+          digitalState: 'No verified local file',
+          digitizationState: 'Digital state unknown',
+          tags: [],
+        },
+      ],
+      relations: [],
+      playlists: [],
+    })
+    const user = userEvent.setup()
+
+    render(<App />)
+
+    let detailPanel = screen.getByRole('complementary', {
+      name: 'Source Label',
+    })
+    expect(
+      within(detailPanel).getByText('1 releases · 0 owned copies'),
+    ).toBeInTheDocument()
+    expect(
+      within(detailSection(detailPanel, 'Owned coverage')).getByText(
+        'None recorded.',
+      ),
+    ).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /Other Label/ }))
+
+    detailPanel = screen.getByRole('complementary', { name: 'Other Label' })
+    expect(
+      within(detailPanel).getByText('1 releases · 1 owned copies'),
+    ).toBeInTheDocument()
+    expect(
+      within(detailSection(detailPanel, 'Owned coverage')).getByRole('link', {
+        name: 'Other Greatest Hits CD',
+      }),
     ).toBeInTheDocument()
   })
 

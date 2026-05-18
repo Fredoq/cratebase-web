@@ -719,6 +719,7 @@ function GraphDetailPanel({
       </section>
 
       <GraphSection title="Credits" links={context.sections.credits} />
+      <GraphSection title="Artists" links={context.sections.artists} />
       <GraphSection title="Relations" links={context.sections.relations} />
       <GraphSection title="Appearances" links={context.sections.releases} />
       <GraphSection title="Tracks" links={context.sections.tracks} />
@@ -834,7 +835,7 @@ function serverSavedViewParams(view: SavedView) {
     case 'Lossless':
       return { savedView: 'all', tag: 'lossless' }
     case 'Credits':
-      return { savedView: 'all' }
+      return { savedView: 'credits' }
   }
 }
 
