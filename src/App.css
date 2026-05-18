@@ -1743,6 +1743,24 @@
   font-size: 12px;
 }
 
+.graph-link-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.graph-link-list li {
+  display: grid;
+  gap: 3px;
+}
+
+.graph-link-list span {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
 .release-label-stack,
 .release-catalog-stack {
   display: grid;

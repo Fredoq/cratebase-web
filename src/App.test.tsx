@@ -66,6 +66,97 @@ function emptyCatalogLoadResponses() {
   ]
 }
 
+function catalogLoadResponsesWithLabels() {
+  return [
+    emptyCatalogListResponse(),
+    jsonResponse({
+      items: [{ id: 'label-1', name: 'Factory Records' }],
+      limit: 100,
+      offset: 0,
+      total: 1,
+    }),
+    ...Array.from({ length: 6 }, emptyCatalogListResponse),
+    defaultDictionaryListResponse(),
+    emptyCatalogListResponse(),
+    emptyCatalogListResponse(),
+  ]
+}
+
+function searchResponseWithLabel() {
+  return jsonResponse({
+    items: [
+      {
+        id: 'label-1',
+        type: 'label',
+        title: 'Factory Records',
+        subtitle: 'Label',
+        summary: '1 release · vinyl coverage',
+        matchedFields: ['name', 'label releases'],
+        snippets: ['Factory Records · Blue Monday'],
+        facets: {
+          roles: [],
+          media: ['Vinyl'],
+          statuses: ['Owned'],
+          tags: ['post-punk'],
+          labelId: 'label-1',
+          collectorSignals: ['physicalWithoutDigital'],
+        },
+        rank: 1,
+      },
+    ],
+    limit: 100,
+    offset: 0,
+    total: 1,
+  })
+}
+
+function graphResponseForLabel() {
+  return jsonResponse({
+    entity: {
+      id: 'label-1',
+      type: 'label',
+      title: 'Factory Records',
+      subtitle: 'Label',
+      summary: '1 release in the collection.',
+    },
+    sections: {
+      artists: [],
+      releases: [
+        {
+          id: 'release-1',
+          type: 'release',
+          title: 'Blue Monday',
+          subtitle: 'New Order',
+          relation: 'Label release',
+        },
+      ],
+      tracks: [],
+      ownedCopies: [
+        {
+          id: 'owned-1',
+          type: 'ownedItem',
+          title: 'Blue Monday vinyl',
+          subtitle: 'Vinyl · Needs digitization',
+          relation: 'Owned copy',
+        },
+      ],
+      labels: [],
+      credits: [],
+      relations: [],
+      media: [
+        {
+          id: 'media-vinyl',
+          type: 'ownedItem',
+          title: 'Vinyl',
+          subtitle: '1 copy',
+          relation: 'Media coverage',
+        },
+      ],
+    },
+    collectorSignals: ['Physical media without digital copy'],
+  })
+}
+
 describe('App', () => {
   beforeEach(() => {
     window.history.pushState({}, '', '/catalog')
@@ -461,6 +552,7 @@ describe('App', () => {
       'Releases',
       'Tracks',
       'Artists',
+      'Labels',
       'Playlists',
       'Owned Items',
       'Relations',
@@ -468,6 +560,64 @@ describe('App', () => {
       'Exports',
       'Settings',
     ])
+  })
+
+  it('loads catalog search results and graph context from the server', async () => {
+    clearCatalogForTests()
+    const fetchMock = mockFetch(
+      ...emptyCatalogLoadResponses(),
+      searchResponseWithLabel(),
+      graphResponseForLabel(),
+    )
+
+    render(<App />)
+
+    expect(
+      await screen.findByRole('row', { name: /Factory Records/i }),
+    ).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: 'Factory Records' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Blue Monday')).toBeInTheDocument()
+    expect(
+      screen.getByText('Physical media without digital copy'),
+    ).toBeInTheDocument()
+    expect(
+      fetchMock.mock.calls.some(
+        ([url]) => typeof url === 'string' && url.startsWith('/api/search?'),
+      ),
+    ).toBe(true)
+    expect(fetchMock).toHaveBeenCalledWith('/api/catalog-graph/label/label-1', {
+      credentials: 'include',
+      method: 'GET',
+    })
+  })
+
+  it('opens a label workspace from a server-backed catalog result', async () => {
+    clearCatalogForTests()
+    mockFetch(
+      ...catalogLoadResponsesWithLabels(),
+      searchResponseWithLabel(),
+      graphResponseForLabel(),
+    )
+    const user = userEvent.setup()
+
+    render(<App />)
+
+    await user.click(
+      await screen.findByRole('link', { name: 'Open Factory Records' }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'Labels' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Labels' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    expect(
+      screen.getByRole('heading', { name: 'Factory Records' }),
+    ).toBeInTheDocument()
   })
 
   it('navigates between workspace sections from the sidebar', async () => {
