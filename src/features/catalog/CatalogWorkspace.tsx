@@ -941,7 +941,9 @@ function matchesSavedView(entry: CatalogEntry, view: SavedView) {
       return entry.statuses.includes('Owned')
     case 'Physical without digital':
       return (
-        entry.media.some(isPhysicalMedium) && !entry.media.some(isDigitalMedium)
+        entry.media.some(isPhysicalMedium) &&
+        !entry.media.some(isDigitalMedium) &&
+        !isDigitalMedium(entry.fileFormat)
       )
     case 'Lossy without lossless':
       return (
@@ -960,14 +962,60 @@ function matchesSavedView(entry: CatalogEntry, view: SavedView) {
 }
 
 function isDigitalMedium(medium: string) {
-  return medium.trim().toLowerCase() === 'digital'
+  const tokens = mediumLabelTokens(medium)
+
+  return tokens.some((token) => DIGITAL_MEDIUM_TOKENS.has(token))
 }
 
 function isPhysicalMedium(medium: string) {
-  const normalizedMedium = medium.trim().toLowerCase()
+  const normalizedMedium = normalizeMediumLabel(medium)
+  const tokens = mediumLabelTokens(medium)
 
-  return ['vinyl', 'cd', 'cassette', 'other'].includes(normalizedMedium)
+  return (
+    tokens.some((token) => PHYSICAL_MEDIUM_TOKENS.has(token)) ||
+    normalizedMedium.includes('compact disc') ||
+    /(^|[^a-z0-9])(?:\d+\s*x\s*)?cds?($|[^a-z0-9])/.test(normalizedMedium)
+  )
 }
+
+function mediumLabelTokens(label: string) {
+  return normalizeMediumLabel(label)
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
+}
+
+function normalizeMediumLabel(label: string) {
+  return label.trim().toLowerCase()
+}
+
+const DIGITAL_MEDIUM_TOKENS = new Set([
+  'aac',
+  'aiff',
+  'alac',
+  'digital',
+  'download',
+  'downloads',
+  'file',
+  'files',
+  'flac',
+  'folder',
+  'm4a',
+  'mp3',
+  'ogg',
+  'wav',
+])
+
+const PHYSICAL_MEDIUM_TOKENS = new Set([
+  'cassette',
+  'cd',
+  'lp',
+  'other',
+  'record',
+  'records',
+  'tape',
+  'tapes',
+  'vinyl',
+])
 
 function isLossyFileFormat(format: string) {
   return ['mp3', 'ogg', 'm4a'].includes(format.trim().toLowerCase())

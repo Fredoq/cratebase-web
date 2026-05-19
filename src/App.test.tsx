@@ -4492,6 +4492,18 @@ describe('App', () => {
     expect(
       screen.queryByRole('row', { name: /polynomial-c/i }),
     ).not.toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole('button', { name: 'Physical without digital' }),
+    )
+
+    expect(
+      screen.getByRole('button', { name: 'Physical without digital' }),
+    ).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getAllByRole('row', { name: /blue monday/i }).length).toBe(2)
+    expect(
+      screen.queryByRole('row', { name: /selected ambient works/i }),
+    ).not.toBeInTheDocument()
   })
 
   it('updates the detail panel when a catalog row is selected', async () => {
