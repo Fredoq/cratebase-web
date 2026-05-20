@@ -68,14 +68,15 @@ export function ExportsWorkspace({
 
   async function downloadBrowserExport(format: ExportFormat) {
     const label = exportFormatLabels[format]
+    const exportUrl = `/api/exports/${format}`
     setPendingExport(format)
     setDownloadStatus(`Downloading ${label} export`)
     setDownloadError(null)
 
     try {
-      const response = await fetch(`/api/exports/${format}`, {
+      const response = await fetch(exportUrl, {
         credentials: 'include',
-        method: 'GET',
+        method: 'HEAD',
       })
 
       if (response.status === 401) {
@@ -83,16 +84,21 @@ export function ExportsWorkspace({
         return
       }
 
+      if (response.status === 405 || response.status === 501) {
+        triggerBrowserDownload(exportUrl, exportFileName(null, format))
+        setDownloadStatus(`${label} export started`)
+        return
+      }
+
       if (!response.ok) {
         throw await exportErrorFromResponse(response)
       }
 
-      const blob = await response.blob()
       triggerBrowserDownload(
-        blob,
+        exportUrl,
         exportFileName(response.headers.get('Content-Disposition'), format),
       )
-      setDownloadStatus(`${label} export downloaded`)
+      setDownloadStatus(`${label} export started`)
     } catch (error) {
       setDownloadError(errorMessage(error))
       setDownloadStatus(`${label} export failed`)
@@ -284,15 +290,13 @@ async function readOptionalJson<T>(response: Response): Promise<T | null> {
   }
 }
 
-function triggerBrowserDownload(blob: Blob, fileName: string) {
-  const url = URL.createObjectURL(blob)
+function triggerBrowserDownload(url: string, fileName: string) {
   const link = document.createElement('a')
   link.href = url
   link.download = fileName
   document.body.append(link)
   link.click()
   link.remove()
-  URL.revokeObjectURL(url)
 }
 
 function exportFileName(

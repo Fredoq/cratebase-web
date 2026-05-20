@@ -104,12 +104,16 @@ function importSessionResponse() {
   })
 }
 
-function stubExportBlobUrl() {
+function stubBrowserExportDownload() {
+  const download = { fileName: '', href: '' }
   const createObjectURL = vi.fn(() => 'blob:cratebase-export')
   const revokeObjectURL = vi.fn()
   const click = vi
     .spyOn(HTMLAnchorElement.prototype, 'click')
-    .mockImplementation(() => {})
+    .mockImplementation(function (this: HTMLAnchorElement) {
+      download.href = this.getAttribute('href') ?? ''
+      download.fileName = this.download
+    })
   Object.defineProperty(URL, 'createObjectURL', {
     configurable: true,
     value: createObjectURL,
@@ -119,7 +123,7 @@ function stubExportBlobUrl() {
     value: revokeObjectURL,
   })
 
-  return { click, createObjectURL, revokeObjectURL }
+  return { click, createObjectURL, download, revokeObjectURL }
 }
 
 function catalogLoadResponsesWithLabels() {
@@ -960,6 +964,41 @@ describe('App', () => {
     ).toBeGreaterThan(0)
   })
 
+  it('refreshes server-backed catalog search after add entry saves', async () => {
+    clearCatalogForTests()
+    const fetchMock = mockFetch(
+      ...emptyCatalogLoadResponses(),
+      emptySearchResponse(),
+      jsonResponse({
+        id: '00000000-0000-7000-8000-000000000011',
+        name: 'Search Refresh Artist',
+        type: 'person',
+      }),
+      ...emptyCatalogLoadResponses(),
+      emptySearchResponse(),
+    )
+    const user = userEvent.setup()
+    render(<App />)
+
+    await screen.findByText('No matching catalog entries.')
+    await user.click(screen.getByRole('button', { name: 'Add entry' }))
+    await user.click(
+      screen.getByRole('button', { name: 'Create artist entry' }),
+    )
+
+    const form = screen.getByRole('form', { name: 'Add artist' })
+    await user.type(
+      within(form).getByLabelText('Name'),
+      'Search Refresh Artist',
+    )
+    await user.click(within(form).getByRole('button', { name: 'Add record' }))
+
+    expect(await screen.findByText('Artist saved.')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(searchRequestUrls(fetchMock)).toHaveLength(2)
+    })
+  })
+
   it.each([
     {
       path: '/artists',
@@ -1451,14 +1490,14 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: /download csv/i })).toBeEnabled()
   })
 
-  it('downloads JSON exports through authenticated browser requests', async () => {
+  it('starts JSON exports through authenticated direct browser downloads', async () => {
     window.history.pushState({}, '', '/exports')
-    const { createObjectURL, revokeObjectURL } = stubExportBlobUrl()
+    const { click, createObjectURL, download, revokeObjectURL } =
+      stubBrowserExportDownload()
     const fetchMock = mockFetch(
-      new Response(JSON.stringify({ artists: [] }), {
+      new Response(null, {
         headers: {
           'Content-Disposition': 'attachment; filename="cratebase.json"',
-          'Content-Type': 'application/json',
         },
         status: 200,
       }),
@@ -1470,13 +1509,14 @@ describe('App', () => {
 
     expect(fetchMock).toHaveBeenCalledWith('/api/exports/json', {
       credentials: 'include',
-      method: 'GET',
+      method: 'HEAD',
     })
-    expect(createObjectURL).toHaveBeenCalledOnce()
-    expect(revokeObjectURL).toHaveBeenCalledWith('blob:cratebase-export')
-    expect(
-      await screen.findByText('JSON export downloaded'),
-    ).toBeInTheDocument()
+    expect(click).toHaveBeenCalledOnce()
+    expect(download.href).toBe('/api/exports/json')
+    expect(download.fileName).toBe('cratebase.json')
+    expect(createObjectURL).not.toHaveBeenCalled()
+    expect(revokeObjectURL).not.toHaveBeenCalled()
+    expect(await screen.findByText('JSON export started')).toBeInTheDocument()
   })
 
   it('shows export server failures accessibly and resets pending state', async () => {

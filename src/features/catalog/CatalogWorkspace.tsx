@@ -69,6 +69,7 @@ type CatalogWorkspaceProps = {
   ownedItems: OwnedItemRecord[]
   relations: RelationRecord[]
   playlists: PlaylistRecord[]
+  searchRefreshKey?: number
   serverBacked?: boolean
 }
 
@@ -103,6 +104,7 @@ export function CatalogWorkspace(props: CatalogWorkspaceProps) {
         addEntryPanel={props.addEntryPanel}
         labels={props.labels ?? []}
         locationSearch={props.locationSearch ?? window.location.search}
+        searchRefreshKey={props.searchRefreshKey ?? 0}
       />
     )
   }
@@ -220,10 +222,12 @@ function ServerCatalogWorkspace({
   addEntryPanel,
   labels,
   locationSearch,
+  searchRefreshKey,
 }: {
   addEntryPanel?: ReactNode
   labels: LabelRecord[]
   locationSearch: string
+  searchRefreshKey: number
 }) {
   const initialParams = useMemo(
     () => parseCatalogSearchParams(locationSearch),
@@ -316,7 +320,7 @@ function ServerCatalogWorkspace({
     return () => {
       isCurrent = false
     }
-  }, [activeView, filters, query])
+  }, [activeView, filters, query, searchRefreshKey])
 
   const selectedResult =
     results.find((result) => resultKey(result) === selectedResultId) ??

@@ -100,6 +100,7 @@ function AuthenticatedApp({
   )
   const [actionStatus, setActionStatus] = useState<string | null>(null)
   const [isCatalogAddEntryOpen, setCatalogAddEntryOpen] = useState(false)
+  const [catalogSearchRefreshKey, setCatalogSearchRefreshKey] = useState(0)
   const [manualEntryOpen, setManualEntryOpen] = useState<
     Partial<Record<AppRoutePath, boolean>>
   >({})
@@ -187,6 +188,7 @@ function AuthenticatedApp({
       try {
         const mutationResult = mutation()
         setCatalog(getInitialCatalogStateForTests() ?? emptyCatalogState)
+        setCatalogSearchRefreshKey((key) => key + 1)
         setActionStatus(successMessage)
         await mutationResult
       } catch (error) {
@@ -201,6 +203,7 @@ function AuthenticatedApp({
       await mutation()
       const refreshed = await refreshCatalog({ preserveCurrentCatalog: true })
       if (refreshed) {
+        setCatalogSearchRefreshKey((key) => key + 1)
         setActionStatus(successMessage)
       }
     } catch (error) {
@@ -316,6 +319,7 @@ function AuthenticatedApp({
             locationSearch,
             artists: catalog.artists,
             labels: catalog.labels ?? [],
+            searchRefreshKey: catalogSearchRefreshKey,
             releases: catalog.releases,
             tracks: catalog.tracks,
             ownedItems: catalog.ownedItems,
@@ -627,6 +631,7 @@ function renderWorkspace(
     ownedItems: OwnedItemRecord[]
     relations: RelationRecord[]
     playlists: PlaylistRecord[]
+    searchRefreshKey: number
     serverBackedCatalog: boolean
     dictionaries: NonNullable<CatalogState['dictionaries']>
     ratingCriteria: NonNullable<CatalogState['ratingCriteria']>
@@ -712,6 +717,7 @@ function renderWorkspace(
           playlists={catalogState.playlists}
           relations={catalogState.relations}
           releases={catalogState.releases}
+          searchRefreshKey={catalogState.searchRefreshKey}
           serverBacked={catalogState.serverBackedCatalog}
           tracks={catalogState.tracks}
         />
