@@ -17,6 +17,7 @@ import {
   createRatingCriterion,
   createArtist,
   createOwnedItem,
+  createPlaylist,
   createRelation,
   createRelease,
   createTrack,
@@ -26,6 +27,7 @@ import {
   deleteRating,
   deleteRatingCriterion,
   deleteOwnedItem,
+  deletePlaylist,
   deleteRelation,
   deleteRelease,
   deleteTrack,
@@ -39,6 +41,7 @@ import {
   updateRatingCriterion,
   updateArtist,
   updateOwnedItem,
+  updatePlaylist,
   updateRelation,
   updateRelease,
   updateTrack,
@@ -356,8 +359,10 @@ function AuthenticatedApp({
                 'Relation saved.',
               )
             },
-            onAddPlaylist: () => {
-              setActionStatus('Playlist saving is not available yet.')
+            onAddPlaylist: (playlist) => {
+              void runCatalogMutation(async () => {
+                await createPlaylist(playlist)
+              }, 'Playlist saved.')
             },
             onUpdateArtist: (artist) => {
               void runCatalogMutation(
@@ -386,8 +391,10 @@ function AuthenticatedApp({
                 'Relation saved.',
               )
             },
-            onUpdatePlaylist: () => {
-              setActionStatus('Playlist saving is not available yet.')
+            onUpdatePlaylist: (playlist) => {
+              void runCatalogMutation(async () => {
+                await updatePlaylist(playlist)
+              }, 'Playlist saved.')
             },
             onDeleteArtist: (artistId) => {
               void runCatalogMutation(
@@ -439,8 +446,11 @@ function AuthenticatedApp({
                 'Relation deleted.',
               )
             },
-            onDeletePlaylist: () => {
-              setActionStatus('Playlist saving is not available yet.')
+            onDeletePlaylist: (playlistId) => {
+              void runCatalogMutation(
+                () => deletePlaylist(playlistId),
+                'Playlist deleted.',
+              )
             },
             onCreateDictionaryEntry: (entry) => {
               void runCatalogMutation(
