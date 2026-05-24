@@ -538,6 +538,7 @@ const manualEntryRoutes = new Set<AppRoutePath>([
   '/tracks',
   '/owned-items',
   '/relations',
+  '/playlists',
 ])
 
 function CatalogStatusPanel({ message }: { message: string }) {

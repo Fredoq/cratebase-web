@@ -1129,6 +1129,17 @@ describe('App', () => {
       rowName: /archive source person archive target project/i,
       detailName: 'Archive Source Person to Archive Target Project',
     },
+    {
+      path: '/playlists',
+      heading: 'Playlists',
+      action: 'Add playlist',
+      form: 'Add playlist',
+      requiredLabel: 'Name',
+      value: 'Listening Desk Checks',
+      searchLabel: 'Search playlists',
+      rowName: /listening desk checks/i,
+      detailName: 'Listening Desk Checks',
+    },
   ])(
     'supports required-only manual entry from the header in $heading',
     async ({
