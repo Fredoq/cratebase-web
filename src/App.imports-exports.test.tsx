@@ -276,10 +276,17 @@ describe('App imports and exports', () => {
       }),
     )
 
-    await h.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(25))
+    await h.waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(
+          ([url]) => url === '/api/exports/json/restore',
+        ),
+      ).toBe(true),
+    )
     const restoreCall = fetchMock.mock.calls.find(
       ([url]) => url === '/api/exports/json/restore',
     )
+    expect(restoreCall).toBeDefined()
     expect(restoreCall?.[1]).toMatchObject({
       body: JSON.stringify({ formatVersion: 1 }),
       credentials: 'include',

@@ -4,6 +4,7 @@ import {
   CatalogApiError,
   assertNoCollectionIds,
   getAllPages,
+  readJsonBody,
   sendDelete,
   sendJson,
 } from './httpClient'
@@ -212,8 +213,10 @@ export async function uploadReleaseCover(releaseId: string, file: File) {
     throw await CatalogApiError.fromResponse(response)
   }
 
-  const responseBody = (await response.json()) as ReleaseCoverImageDto
-  assertNoCollectionIds(responseBody)
+  const responseBody = await readJsonBody<ReleaseCoverImageDto>(response)
+  if (responseBody !== null) {
+    assertNoCollectionIds(responseBody)
+  }
 }
 
 export async function removeReleaseCover(releaseId: string) {

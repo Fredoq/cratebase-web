@@ -100,10 +100,7 @@ See [docs/acceptance-checklist.md](docs/acceptance-checklist.md) for the shared 
 - Manual playlist creation can persist ordered server catalog links; free-form draft links are kept client-side until linked to catalog IDs.
 - The browser app can review import sessions but cannot browse arbitrary local folders.
 - There is no streaming player, social graph, marketplace, recommendation engine or external catalog integration.
-
-## Product Boundaries
-
-Cratebase Web should start as a working catalog, search and relation-navigation interface. It is not a streaming player, social network, marketplace, recommendation engine, public profile system, or mobile-first app.
+- Cratebase Web is a working catalog, search and relation-navigation interface, not a public profile system or mobile-first app.
 
 ## License
 

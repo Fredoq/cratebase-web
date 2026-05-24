@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import * as api from './catalogApi'
 import * as h from './catalogApiTestHarness'
+import { postEmpty, sendJson } from './api/httpClient'
 
 h.setupCatalogApiAdapterTests()
 
@@ -28,6 +29,28 @@ describe('catalog API adapter protocol, playlists and imports', () => {
     )
 
     await expect(api.loadCatalog()).rejects.toThrow(/collection ids/i)
+  })
+
+  it('handles empty successful mutation responses', async () => {
+    const fetchMock = vi
+      .fn<Window['fetch']>()
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(new Response('', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(
+      sendJson('/api/test', 'POST', { name: 'Test' }),
+    ).resolves.toEqual({})
+    await expect(postEmpty('/api/test/action')).resolves.toEqual({})
+
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      credentials: 'include',
+      method: 'POST',
+    })
+    expect(fetchMock.mock.calls[1][1]).toMatchObject({
+      credentials: 'include',
+      method: 'POST',
+    })
   })
 
   it('continues loading paged catalog endpoints until totals are reached', async () => {
@@ -177,6 +200,9 @@ describe('catalog API adapter protocol, playlists and imports', () => {
     await api.deletePlaylist(playlist.id)
 
     expect(fetchMock.mock.calls[0][0]).toBe('/api/playlists')
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      credentials: 'include',
+    })
     expect(
       h.requestPayload<Record<string, unknown>>(fetchMock.mock.calls[0][1]),
     ).toMatchObject({
@@ -192,9 +218,13 @@ describe('catalog API adapter protocol, playlists and imports', () => {
     expect(fetchMock.mock.calls[1][0]).toBe(
       '/api/playlists/00000000-0000-7000-8000-000000000111',
     )
+    expect(fetchMock.mock.calls[1][1]).toMatchObject({
+      credentials: 'include',
+    })
     expect(fetchMock.mock.calls[2]).toMatchObject([
       '/api/playlists/00000000-0000-7000-8000-000000000111',
       {
+        credentials: 'include',
         headers: {
           'X-Cratebase-Confirm-Delete':
             'playlist:00000000-0000-7000-8000-000000000111',

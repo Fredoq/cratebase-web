@@ -131,12 +131,24 @@ describe('App release entry tracklists', () => {
     )
     await user.click(h.screen.getByRole('button', { name: 'Add record' }))
 
-    const createdTrack = h
-      .getInitialCatalogStateForTests()
-      ?.tracks.find((track) => track.title === 'Second Cut')
+    await user.click(h.screen.getByRole('link', { name: 'Tracks' }))
+    await user.type(
+      h.screen.getByRole('searchbox', { name: 'Search tracks' }),
+      'Second Cut',
+    )
+    const trackRow = h.screen.getByRole('row', { name: /second cut/i })
 
-    expect(createdTrack?.trackNumber).toBe('1')
-    expect(createdTrack?.releaseAppearances.at(-1)?.position).toBe('1')
+    await user.click(trackRow)
+    const releaseAppearances = h.detailSection(
+      h.screen.getByRole('complementary', { name: 'Second Cut' }),
+      'Release appearances',
+    )
+    expect(h.within(releaseAppearances).getByText('Track 1')).toBeVisible()
+    expect(
+      h.within(releaseAppearances).getByRole('link', {
+        name: 'Trimmed Tracklist',
+      }),
+    ).toBeVisible()
   })
 
   it('removes an edited release tracklist row without deleting the track', async () => {
@@ -205,6 +217,9 @@ describe('App release entry tracklists', () => {
     await h.addReleaseTrackRow(user, form)
 
     await user.click(h.screen.getByRole('button', { name: 'Add record' }))
+    await user.click(
+      await h.screen.findByRole('button', { name: /two label archive/i }),
+    )
 
     const detailPanel = h.screen.getByRole('complementary', {
       name: 'Two Label Archive',
@@ -241,6 +256,9 @@ describe('App release entry tracklists', () => {
     expect(h.within(form).queryByLabelText('Label')).not.toBeInTheDocument()
 
     await user.click(h.screen.getByRole('button', { name: 'Add record' }))
+    await user.click(
+      await h.screen.findByRole('button', { name: /no label archive/i }),
+    )
 
     expect(
       h

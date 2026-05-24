@@ -93,10 +93,12 @@ export async function sendJson<T = unknown>(
     throw await CatalogApiError.fromResponse(response)
   }
 
-  const responseBody = (await response.json()) as T
-  assertNoCollectionIds(responseBody)
+  const responseBody = await readJsonBody<T>(response)
+  if (responseBody !== null) {
+    assertNoCollectionIds(responseBody)
+  }
 
-  return responseBody
+  return responseBody ?? ({} as T)
 }
 
 export async function postEmpty<T = unknown>(path: string): Promise<T> {
@@ -109,10 +111,12 @@ export async function postEmpty<T = unknown>(path: string): Promise<T> {
     throw await CatalogApiError.fromResponse(response)
   }
 
-  const responseBody = (await response.json()) as T
-  assertNoCollectionIds(responseBody)
+  const responseBody = await readJsonBody<T>(response)
+  if (responseBody !== null) {
+    assertNoCollectionIds(responseBody)
+  }
 
-  return responseBody
+  return responseBody ?? ({} as T)
 }
 
 export async function sendDelete(path: string, confirmation: string) {
@@ -144,6 +148,15 @@ export function assertNoCollectionIds(value: unknown) {
 
     assertNoCollectionIds(child)
   }
+}
+
+export async function readJsonBody<T>(response: Response): Promise<T | null> {
+  const text = await response.text()
+  if (text.trim().length === 0) {
+    return null
+  }
+
+  return JSON.parse(text) as T
 }
 
 export class CatalogApiError extends Error {

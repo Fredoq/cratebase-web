@@ -1,10 +1,18 @@
 import { describe, expect, it, vi } from 'vitest'
 import * as api from './catalogApi'
 import * as h from './catalogApiTestHarness'
+import { parseYear } from './api/catalogRequestMappers'
 
 h.setupCatalogApiAdapterTests()
 
 describe('catalog API adapter dictionary and appearance mapping', () => {
+  it('parses release years only when the full value is a four-digit year', () => {
+    expect(parseYear(' 2024 ')).toBe(2024)
+    expect(parseYear('2024abc')).toBeNull()
+    expect(parseYear('24')).toBeNull()
+    expect(parseYear('abcd')).toBeNull()
+  })
+
   it('uses stable main artist credit codes when labels are renamed', async () => {
     const fetchMock = vi.fn<Window['fetch']>().mockImplementation((input) => {
       const requestUrl =

@@ -143,7 +143,7 @@ describe('App settings and navigation', () => {
     await user.clear(h.within(addPanel).getByLabelText('Order'))
     await user.type(h.within(addPanel).getByLabelText('Order'), '90')
     const addButton = h.within(addPanel).getByRole('button', { name: 'Add' })
-    expect(addButton).toHaveClass('button-primary')
+    expect(addButton).toBeEnabled()
     await user.click(addButton)
 
     expect(

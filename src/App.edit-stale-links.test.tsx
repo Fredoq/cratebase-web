@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import * as h from './test/appTestHarness'
 
 h.setupAppTestHooks()
@@ -57,6 +57,9 @@ describe('App edit stale link handling', () => {
       'selected-ambient-works-85-92',
     )
     await user.click(h.within(form).getByRole('button', { name: 'Add record' }))
+    await user.click(
+      await h.screen.findByRole('button', { name: /loose sleeve copy/i }),
+    )
 
     expect(
       h
@@ -248,15 +251,23 @@ describe('App edit stale link handling', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('keeps manual record ids unique when records are created in the same millisecond', () => {
-    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(123)
+  it('allows duplicate-titled manual tracks in one session', async () => {
+    window.history.pushState({}, '', '/tracks')
+    const user = h.userEvent.setup()
+    h.render(<h.App />)
 
-    try {
-      expect(h.createManualRecordId('track', 'Same Title')).not.toBe(
-        h.createManualRecordId('track', 'Same Title'),
-      )
-    } finally {
-      nowSpy.mockRestore()
-    }
+    await user.click(h.screen.getByRole('button', { name: 'Add track' }))
+    let form = h.screen.getByRole('form', { name: 'Add track' })
+    await user.type(h.within(form).getByLabelText('Title'), 'Same Title')
+    await user.click(h.within(form).getByRole('button', { name: 'Add record' }))
+
+    await user.click(h.screen.getByRole('button', { name: 'Add track' }))
+    form = h.screen.getByRole('form', { name: 'Add track' })
+    await user.type(h.within(form).getByLabelText('Title'), 'Same Title')
+    await user.click(h.within(form).getByRole('button', { name: 'Add record' }))
+
+    expect(h.screen.getAllByRole('row', { name: /same title/i })).toHaveLength(
+      2,
+    )
   })
 })

@@ -137,9 +137,12 @@ export function toTrackRelationTypeCode(type: string) {
 }
 
 export function parseYear(value: string) {
-  const year = Number.parseInt(value, 10)
+  const trimmed = value.trim()
+  if (!/^\d{4}$/.test(trimmed)) {
+    return null
+  }
 
-  return Number.isInteger(year) ? year : null
+  return Number.parseInt(trimmed, 10)
 }
 
 export function parseDuration(value: string) {

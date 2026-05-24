@@ -333,9 +333,11 @@ export type MediumDto = {
   discCount?: number | null
 }
 
+export type CatalogTargetType = 'release' | 'track'
+
 export type OwnedItemDto = {
   id: string
-  targetType: string
+  targetType: CatalogTargetType
   targetId: string
   status: string
   medium: MediumDto
@@ -347,7 +349,7 @@ export type CreditDto = {
   id: string
   contributorArtistId: string
   contributorName: string
-  targetType: string
+  targetType: CatalogTargetType
   targetId: string
   role: string
 }

@@ -100,7 +100,9 @@ export function ServerCatalogWorkspace({
         setSelectedResultId((currentId) =>
           response.items.some((item) => resultKey(item) === currentId)
             ? currentId
-            : (resultKey(response.items[0]) ?? ''),
+            : response.items[0]
+              ? resultKey(response.items[0])
+              : '',
         )
       })
       .catch((error: unknown) => {

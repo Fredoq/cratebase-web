@@ -14,7 +14,6 @@ import {
 } from '../features/catalog/catalogApi'
 import { buildCatalogEntries } from '../features/catalog/catalogGraph'
 import { artistRecords } from '../features/artists/artistsData'
-import { createManualRecordId } from '../features/manualEntry/manualEntryUtils'
 import { ownedItemRecords } from '../features/ownedItems/ownedItemsData'
 import { playlistRecords } from '../features/playlists/playlistsData'
 import { releaseRecords } from '../features/releases/releasesData'
@@ -28,7 +27,6 @@ export {
   buildCatalogEntries,
   clearAuthSessionForTests,
   clearCatalogForTests,
-  createManualRecordId,
   defaultCatalogDictionaries,
   getInitialCatalogStateForTests,
   ownedItemRecords,

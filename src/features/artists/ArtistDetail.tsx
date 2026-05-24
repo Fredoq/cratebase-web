@@ -183,7 +183,11 @@ function buildArtistInsights(
       }
     }
 
-    for (const credit of matchingTargetCredits(artist, release.title)) {
+    for (const credit of matchingTargetCredits(
+      artist,
+      release.title,
+      'Release',
+    )) {
       roles.add(credit.role)
     }
 
@@ -229,7 +233,7 @@ function buildArtistInsights(
       }
     }
 
-    for (const credit of matchingTargetCredits(artist, track.title)) {
+    for (const credit of matchingTargetCredits(artist, track.title, 'Track')) {
       roles.add(credit.role)
     }
 
@@ -326,11 +330,18 @@ function buildArtistInsights(
   }
 }
 
-function matchingTargetCredits(artist: ArtistRecord, target: string) {
+function matchingTargetCredits(
+  artist: ArtistRecord,
+  target: string,
+  expectedScope: string,
+) {
   const normalizedTarget = normalizeText(target)
+  const normalizedScope = normalizeText(expectedScope)
 
   return artist.credits.filter(
-    (credit) => normalizeText(credit.target) === normalizedTarget,
+    (credit) =>
+      normalizeText(credit.target) === normalizedTarget &&
+      normalizeText(credit.scope) === normalizedScope,
   )
 }
 

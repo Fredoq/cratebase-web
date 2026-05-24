@@ -55,7 +55,9 @@ async function countLines(file) {
     return 0
   }
 
-  return content.split('\n').length
+  const normalized = content.replace(/\r\n/g, '\n')
+  const lines = normalized.split('\n')
+  return lines.length - (lines.at(-1) === '' ? 1 : 0)
 }
 
 function toRepositoryPath(file) {

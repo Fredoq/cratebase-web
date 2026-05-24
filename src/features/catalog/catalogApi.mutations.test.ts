@@ -45,6 +45,23 @@ describe('catalog API adapter mutations and covers', () => {
     expect((body as FormData).get('file')).toBe(file)
   })
 
+  it('accepts empty successful release cover upload responses', async () => {
+    const fetchMock = vi
+      .fn<Window['fetch']>()
+      .mockResolvedValue(new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetchMock)
+    const file = new File(['cover-bytes'], 'front.png', {
+      type: 'image/png',
+    })
+
+    await api.uploadReleaseCover('release-id', file)
+
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      credentials: 'include',
+      method: 'PUT',
+    })
+  })
+
   it('removes release covers with explicit delete confirmation', async () => {
     const fetchMock = vi
       .fn<Window['fetch']>()
@@ -158,92 +175,97 @@ describe('catalog API adapter mutations and covers', () => {
   })
 
   it('keeps manual digital owned-copy placeholders from displaying an inferred file format', async () => {
-    const fetchMock = vi.fn<Window['fetch']>()
-    fetchMock
-      .mockResolvedValueOnce(
-        h.jsonResponse({
-          items: [
-            {
-              id: '00000000-0000-7000-8000-000000000001',
-              type: 'person',
-              name: 'Digital Artist',
-            },
-          ],
-          limit: 100,
-          offset: 0,
-          total: 1,
-        }),
-      )
-      .mockResolvedValueOnce(
-        h.jsonResponse({ items: [], limit: 100, offset: 0, total: 0 }),
-      )
-      .mockResolvedValueOnce(
-        h.jsonResponse({
-          items: [
-            {
-              id: '00000000-0000-7000-8000-000000000003',
-              title: 'Digital Shell',
-              type: 'album',
-              labelId: null,
-              year: 2026,
-              genres: [],
-              tags: [],
-              artistCredits: [
-                {
-                  artistId: '00000000-0000-7000-8000-000000000001',
-                  artistName: 'Digital Artist',
-                  role: 'mainArtist',
-                },
-              ],
-            },
-          ],
-          limit: 100,
-          offset: 0,
-          total: 1,
-        }),
-      )
-      .mockResolvedValueOnce(
-        h.jsonResponse({ items: [], limit: 100, offset: 0, total: 0 }),
-      )
-      .mockResolvedValueOnce(
-        h.jsonResponse({
-          items: [
-            {
-              id: '00000000-0000-7000-8000-000000000005',
-              targetType: 'release',
-              targetId: '00000000-0000-7000-8000-000000000003',
-              status: 'owned',
-              medium: {
-                type: 'digital',
-                description: 'FLAC',
-                path: '/cratebase/manual-entry-placeholder',
-                format: 'flac',
-                discCount: null,
+    const fetchMock = vi.fn<Window['fetch']>().mockImplementation((input) => {
+      const requestUrl =
+        typeof input === 'string'
+          ? input
+          : input instanceof URL
+            ? input.href
+            : input.url
+      const url = new URL(requestUrl, 'http://localhost')
+
+      if (url.pathname === '/api/artists') {
+        return Promise.resolve(
+          h.jsonResponse({
+            items: [
+              {
+                id: '00000000-0000-7000-8000-000000000001',
+                type: 'person',
+                name: 'Digital Artist',
               },
-              condition: null,
-              storageLocation: null,
-            },
-          ],
-          limit: 100,
-          offset: 0,
-          total: 1,
-        }),
-      )
-      .mockResolvedValueOnce(
-        h.jsonResponse({ items: [], limit: 100, offset: 0, total: 0 }),
-      )
-      .mockResolvedValueOnce(
-        h.jsonResponse({ items: [], limit: 100, offset: 0, total: 0 }),
-      )
-      .mockResolvedValueOnce(
-        h.jsonResponse({ items: [], limit: 100, offset: 0, total: 0 }),
-      )
-      .mockResolvedValueOnce(
-        h.jsonResponse({ items: [], limit: 100, offset: 0, total: 0 }),
-      )
-      .mockResolvedValueOnce(h.defaultDictionaryListResponse())
-      .mockResolvedValueOnce(h.defaultRatingCriteriaListResponse())
-      .mockResolvedValueOnce(h.emptyListResponse())
+            ],
+            limit: 100,
+            offset: 0,
+            total: 1,
+          }),
+        )
+      }
+
+      if (url.pathname === '/api/releases') {
+        return Promise.resolve(
+          h.jsonResponse({
+            items: [
+              {
+                id: '00000000-0000-7000-8000-000000000003',
+                title: 'Digital Shell',
+                type: 'album',
+                labelId: null,
+                year: 2026,
+                genres: [],
+                tags: [],
+                artistCredits: [
+                  {
+                    artistId: '00000000-0000-7000-8000-000000000001',
+                    artistName: 'Digital Artist',
+                    role: 'mainArtist',
+                  },
+                ],
+              },
+            ],
+            limit: 100,
+            offset: 0,
+            total: 1,
+          }),
+        )
+      }
+
+      if (url.pathname === '/api/owned-items') {
+        return Promise.resolve(
+          h.jsonResponse({
+            items: [
+              {
+                id: '00000000-0000-7000-8000-000000000005',
+                targetType: 'release',
+                targetId: '00000000-0000-7000-8000-000000000003',
+                status: 'owned',
+                medium: {
+                  type: 'digital',
+                  description: 'FLAC',
+                  path: '/cratebase/manual-entry-placeholder',
+                  format: 'flac',
+                  discCount: null,
+                },
+                condition: null,
+                storageLocation: null,
+              },
+            ],
+            limit: 100,
+            offset: 0,
+            total: 1,
+          }),
+        )
+      }
+
+      if (url.pathname === '/api/settings/dictionaries') {
+        return Promise.resolve(h.defaultDictionaryListResponse())
+      }
+
+      if (url.pathname === '/api/rating-criteria') {
+        return Promise.resolve(h.defaultRatingCriteriaListResponse())
+      }
+
+      return Promise.resolve(h.emptyListResponse())
+    })
     vi.stubGlobal('fetch', fetchMock)
 
     const catalog = await api.loadCatalog()

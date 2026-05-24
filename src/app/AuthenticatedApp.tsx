@@ -150,11 +150,11 @@ export function AuthenticatedApp({
 
     if (initialCatalogState) {
       try {
-        const mutationResult = mutation()
+        await mutation()
         setCatalog(getInitialCatalogStateForTests() ?? emptyCatalogState)
         setCatalogSearchRefreshKey((key) => key + 1)
+        setCatalogStatus('ready')
         setActionStatus(successMessage)
-        await mutationResult
       } catch (error) {
         setCatalogStatus('error')
         setCatalogError(catalogErrorMessage(error))
