@@ -465,6 +465,8 @@ function PlaylistEntryForm({
       ruleHints,
       tracks: initialPlaylist?.tracks ?? [],
       linkedReleases: initialPlaylist?.linkedReleases ?? [],
+      serverEntries: initialPlaylist?.serverEntries,
+      serverRules: initialPlaylist?.serverRules,
     }
 
     if (type === 'Manual') {

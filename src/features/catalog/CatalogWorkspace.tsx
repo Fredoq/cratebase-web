@@ -979,6 +979,15 @@ function matchesSavedView(entry: CatalogEntry, view: SavedView) {
       return entry.statuses.includes('Needs digitization')
     case 'Credits':
       return entry.credits.length > 0 || entry.type === 'Relation'
+    case 'Remixes':
+      return entry.credits.some((credit) => /remix/i.test(credit))
+    case 'Productions':
+      return entry.credits.some((credit) => /producer|production/i.test(credit))
+    case 'Labels':
+      return (
+        (entry.type === 'Release' || entry.type === 'Track') &&
+        entry.label !== 'Not recorded'
+      )
   }
 }
 

@@ -1126,8 +1126,8 @@ function TrackDraftList({
           ) : null}
           {selectedTrack.issues.length > 0 ? (
             <div className="imports-issue-list" role="status">
-              {selectedTrack.issues.map((issue) => (
-                <p key={`${issue.code}:${issue.message}`}>
+              {selectedTrack.issues.map((issue, index) => (
+                <p key={`${issue.code}:${issue.message}:${index}`}>
                   <strong>{issue.severity}</strong> {issue.message}
                 </p>
               ))}

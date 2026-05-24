@@ -1492,7 +1492,10 @@ describe('App', () => {
   it('shows duplicate import matches before confirmation', async () => {
     vi.stubGlobal('__cratebaseUseRealCatalogApi', true)
     window.history.pushState({}, '', '/imports')
-    mockFetch(importSessionResponse(), importSessionDetailWithDuplicateTrack())
+    const fetchMock = mockFetch(
+      importSessionResponse(),
+      importSessionDetailWithDuplicateTrack(),
+    )
     const user = userEvent.setup()
 
     render(<App />)
@@ -1508,6 +1511,10 @@ describe('App', () => {
       screen.getByText('Duplicate file matched an existing track.'),
     ).toBeInTheDocument()
     expect(screen.getByText('Matched')).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledWith('/api/imports/import-session-1', {
+      credentials: 'include',
+      method: 'GET',
+    })
   })
 
   it('returns to sign in when import sessions expire the session', async () => {

@@ -2865,7 +2865,9 @@
   font-size: 12px;
   line-height: 1.45;
   margin: 0;
+  overflow-wrap: anywhere;
   padding: 8px 10px;
+  white-space: normal;
 }
 
 .imports-issue-list {
