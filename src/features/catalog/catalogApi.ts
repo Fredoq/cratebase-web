@@ -1407,6 +1407,105 @@ export async function deleteArtist(artistId: string) {
   await sendDelete(`/api/artists/${artistId}`, `artist:${artistId}`)
 }
 
+export async function createLabel(label: LabelRecord) {
+  if (
+    updateTestCatalogState((state) => ({
+      ...state,
+      labels: [...(state.labels ?? []), label],
+    }))
+  ) {
+    return
+  }
+
+  await sendJson('/api/labels', 'POST', {
+    name: label.name,
+  })
+}
+
+export async function updateLabel(label: LabelRecord) {
+  if (
+    updateTestCatalogState((state) => ({
+      ...state,
+      labels: (state.labels ?? []).map((record) =>
+        record.id === label.id ? label : record,
+      ),
+      releases: state.releases.map((release) =>
+        updateReleaseLabelName(release, label),
+      ),
+      tracks: state.tracks.map((track) => ({
+        ...track,
+        release:
+          track.release.id && releaseHasLabelId(track.release.id, state, label)
+            ? { ...track.release, label: label.name }
+            : track.release,
+        releaseAppearances: track.releaseAppearances.map((appearance) =>
+          appearance.releaseId &&
+          releaseHasLabelId(appearance.releaseId, state, label)
+            ? { ...appearance, label: label.name }
+            : appearance,
+        ),
+      })),
+    }))
+  ) {
+    return
+  }
+
+  await sendJson(`/api/labels/${label.id}`, 'PUT', {
+    name: label.name,
+  })
+}
+
+export async function deleteLabel(labelId: string) {
+  if (
+    updateTestCatalogState((state) => ({
+      ...state,
+      labels: (state.labels ?? []).filter((label) => label.id !== labelId),
+    }))
+  ) {
+    return
+  }
+
+  await sendDelete(`/api/labels/${labelId}`, `label:${labelId}`)
+}
+
+function updateReleaseLabelName(
+  release: ReleaseRecord,
+  label: LabelRecord,
+): ReleaseRecord {
+  if (
+    !(release.labels ?? []).some(
+      (releaseLabel) => releaseLabel.labelId === label.id,
+    )
+  ) {
+    return release
+  }
+
+  return {
+    ...release,
+    label:
+      release.labels?.[0]?.labelId === label.id ? label.name : release.label,
+    labels: release.labels?.map((releaseLabel) =>
+      releaseLabel.labelId === label.id
+        ? { ...releaseLabel, name: label.name }
+        : releaseLabel,
+    ),
+  }
+}
+
+function releaseHasLabelId(
+  releaseId: string,
+  state: CatalogState,
+  label: LabelRecord,
+) {
+  return state.releases.some(
+    (release) =>
+      release.id === releaseId &&
+      (release.labels ?? []).some(
+        (releaseLabel) => releaseLabel.labelId === label.id,
+      ),
+  )
+}
+
 export async function createRelease(
   release: ReleaseRecord,
   tracks: TrackRecord[],

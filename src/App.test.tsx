@@ -1106,6 +1106,17 @@ describe('App', () => {
       detailName: 'Unlabeled Field Recording',
     },
     {
+      path: '/labels',
+      heading: 'Labels',
+      action: 'Add label',
+      form: 'Add label',
+      requiredLabel: 'Name',
+      value: 'Basement White Label',
+      searchLabel: 'Search labels',
+      rowName: /basement white label/i,
+      detailName: 'Basement White Label',
+    },
+    {
       path: '/owned-items',
       heading: 'Owned Items',
       action: 'Add owned item',

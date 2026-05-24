@@ -68,6 +68,7 @@ export const appRoutes = [
     path: '/labels',
     label: 'Labels',
     description: 'Label catalogs, releases and owned coverage.',
+    actionLabel: 'Add label',
     icon: Tags,
   },
   {
