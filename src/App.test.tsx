@@ -1229,6 +1229,43 @@ describe('App', () => {
     },
   )
 
+  it('keeps label add and edit forms exclusive', async () => {
+    window.history.pushState({}, '', '/labels')
+    seedCatalogForTests({
+      artists: artistRecords,
+      labels: [{ id: 'label-factory', name: 'Factory' }],
+      releases: releaseRecords,
+      tracks: trackRecords,
+      ownedItems: ownedItemRecords,
+      relations: relationRecords,
+      playlists: playlistRecords,
+    })
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Add label' }))
+
+    const addForm = screen.getByRole('form', { name: 'Add label' })
+    expect(within(addForm).getByLabelText('Name')).toHaveFocus()
+
+    await user.click(screen.getByRole('button', { name: 'Edit record' }))
+
+    expect(
+      screen.queryByRole('form', { name: 'Add label' }),
+    ).not.toBeInTheDocument()
+    const editForm = screen.getByRole('form', { name: 'Edit label' })
+    expect(within(editForm).getByLabelText('Name')).toHaveFocus()
+
+    await user.click(within(editForm).getByRole('button', { name: 'Cancel' }))
+
+    expect(
+      screen.queryByRole('form', { name: 'Add label' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('form', { name: 'Edit label' }),
+    ).not.toBeInTheDocument()
+  })
+
   it('keeps manually entered tracks unlinked until a real release is selected', async () => {
     window.history.pushState({}, '', '/tracks')
     const user = userEvent.setup()

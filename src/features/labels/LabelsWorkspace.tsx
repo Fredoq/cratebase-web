@@ -118,6 +118,11 @@ export function LabelsWorkspace({
     setEditingLabelId('')
   }
 
+  function handleEditLabel(labelId: string) {
+    onManualEntryClose()
+    setEditingLabelId(labelId)
+  }
+
   return (
     <section className="catalog-layout" aria-label="Labels workspace">
       <div className="catalog-main">
@@ -134,7 +139,7 @@ export function LabelsWorkspace({
           />
         </label>
 
-        {isManualEntryOpen ? (
+        {isManualEntryOpen && !editingLabel ? (
           <LabelEntryForm
             labels={allLabels}
             onCancel={onManualEntryClose}
@@ -210,7 +215,7 @@ export function LabelsWorkspace({
         <LabelDetailPanel
           label={selectedLabel}
           onDelete={() => handleDeleteLabel(selectedLabel.id)}
-          onEdit={() => setEditingLabelId(selectedLabel.id)}
+          onEdit={() => handleEditLabel(selectedLabel.id)}
         />
       ) : (
         <aside className="panel detail-panel empty-detail-panel">
@@ -273,6 +278,7 @@ function LabelEntryForm({
       <label>
         <span>Name</span>
         <input
+          autoFocus
           value={name}
           onChange={(event) => setName(event.target.value)}
           required
