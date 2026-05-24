@@ -66,12 +66,12 @@
   }
 
   .exports-download-row,
-  .exports-restore-row {
+  .imports-restore-row {
     grid-template-columns: 36px minmax(0, 1fr);
   }
 
   .exports-download-row .button,
-  .exports-restore-row .button {
+  .imports-restore-row .button {
     grid-column: 1 / -1;
   }
 

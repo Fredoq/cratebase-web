@@ -16,8 +16,7 @@
   gap: 10px;
 }
 
-.exports-download-row,
-.exports-restore-row {
+.exports-download-row {
   display: grid;
   grid-template-columns: 36px minmax(0, 1fr) auto;
   align-items: center;
@@ -42,28 +41,18 @@
   color: var(--color-heading);
 }
 
-.exports-download-row strong,
-.exports-restore-row strong {
+.exports-download-row strong {
   display: block;
   margin-bottom: 3px;
   color: var(--color-heading);
   font-size: 14px;
 }
 
-.exports-download-row small,
-.exports-restore-row small {
+.exports-download-row small {
   display: block;
   color: var(--color-muted);
   font-size: 12px;
   line-height: 1.4;
-}
-
-.exports-restore-row input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
 }
 
 .exports-status,

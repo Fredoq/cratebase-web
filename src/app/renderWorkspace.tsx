@@ -308,7 +308,6 @@ export function renderWorkspace(
           artists={catalogState.artists}
           dictionaries={catalogState.dictionaries}
           ownedItems={catalogState.ownedItems}
-          onCatalogChanged={catalogState.onCatalogChanged}
           onSessionExpired={catalogState.onSessionExpired}
           playlists={catalogState.playlists}
           ratingCriteria={catalogState.ratingCriteria}

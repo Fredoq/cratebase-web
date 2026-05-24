@@ -1,12 +1,9 @@
-import { Database, Download, FileArchive, FileJson, Upload } from 'lucide-react'
-import { useState, type ChangeEvent } from 'react'
+import { Database, Download, FileArchive, FileJson } from 'lucide-react'
+import { useState } from 'react'
 import './exports.css'
 import type { ArtistRecord } from '../artists/artistsData'
 import {
-  CatalogApiError,
-  restoreJsonSnapshot,
   type CatalogDictionaries,
-  type ExportRestoreResponse,
   type RatingCriterion,
 } from '../catalog/catalogApi'
 import type { OwnedItemRecord } from '../ownedItems/ownedItemsData'
@@ -19,7 +16,6 @@ type ExportsWorkspaceProps = {
   artists: ArtistRecord[]
   dictionaries: CatalogDictionaries
   ownedItems: OwnedItemRecord[]
-  onCatalogChanged: () => void
   onSessionExpired: () => void
   playlists: PlaylistRecord[]
   ratingCriteria: RatingCriterion[]
@@ -39,7 +35,6 @@ export function ExportsWorkspace({
   artists,
   dictionaries,
   ownedItems,
-  onCatalogChanged,
   onSessionExpired,
   playlists,
   ratingCriteria,
@@ -61,12 +56,8 @@ export function ExportsWorkspace({
   ]
   const isDesktop = isCratebaseDesktop()
   const [pendingExport, setPendingExport] = useState<ExportFormat | null>(null)
-  const [pendingRestore, setPendingRestore] = useState(false)
-  const [restoreInputKey, setRestoreInputKey] = useState(0)
   const [downloadStatus, setDownloadStatus] = useState('Ready')
   const [downloadError, setDownloadError] = useState<string | null>(null)
-  const [restoreStatus, setRestoreStatus] = useState('Ready')
-  const [restoreError, setRestoreError] = useState<string | null>(null)
   const hasCatalogData =
     artists.length +
       releases.length +
@@ -144,42 +135,6 @@ export function ExportsWorkspace({
     }
   }
 
-  async function handleRestoreFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.currentTarget.files?.[0]
-    if (!file) {
-      return
-    }
-
-    setPendingRestore(true)
-    setRestoreStatus('Restoring JSON backup')
-    setRestoreError(null)
-
-    try {
-      const snapshot = JSON.parse(await readFileText(file)) as unknown
-      const result = await restoreJsonSnapshot(snapshot)
-      onCatalogChanged()
-      setRestoreStatus(restoreSummary(result))
-      setRestoreInputKey((key) => key + 1)
-    } catch (error) {
-      if (error instanceof SyntaxError) {
-        setRestoreError('Select a valid JSON backup.')
-      } else if (
-        error instanceof CatalogApiError &&
-        error.code === 'export_restore.collection_not_empty'
-      ) {
-        setRestoreError('Restore requires an empty collection.')
-      } else if (error instanceof CatalogApiError && error.status === 401) {
-        onSessionExpired()
-      } else {
-        setRestoreError(errorMessage(error, 'Restore failed.'))
-      }
-      setRestoreStatus('Restore failed')
-      setRestoreInputKey((key) => key + 1)
-    } finally {
-      setPendingRestore(false)
-    }
-  }
-
   return (
     <section className="exports-layout" aria-label="Exports workspace">
       <section className="panel exports-panel" aria-labelledby="exports-title">
@@ -225,31 +180,6 @@ export function ExportsWorkspace({
             />
           </div>
 
-          <div className="exports-restore-row">
-            <span className="exports-download-icon" aria-hidden="true">
-              <Upload size={18} strokeWidth={2.1} />
-            </span>
-            <span>
-              <strong>Restore JSON backup</strong>
-              <small>
-                Loads a Cratebase JSON snapshot into an empty collection.
-              </small>
-            </span>
-            <label className="button button-secondary">
-              <input
-                key={restoreInputKey}
-                accept="application/json,.json"
-                aria-label="Restore JSON backup"
-                disabled={pendingRestore || Boolean(pendingExport)}
-                onChange={(event) => {
-                  void handleRestoreFileChange(event)
-                }}
-                type="file"
-              />
-              {pendingRestore ? 'Restoring JSON' : 'Choose JSON'}
-            </label>
-          </div>
-
           {!hasCatalogData ? (
             <p className="exports-status">
               The export will contain archive settings and empty catalog tables.
@@ -260,12 +190,6 @@ export function ExportsWorkspace({
             role={downloadError ? 'alert' : 'status'}
           >
             {downloadError ?? downloadStatus}
-          </p>
-          <p
-            className={restoreError ? 'exports-error' : 'exports-status'}
-            role={restoreError ? 'alert' : 'status'}
-          >
-            {restoreError ?? restoreStatus}
           </p>
         </div>
       </section>
@@ -348,29 +272,8 @@ function ExportDownload({
   )
 }
 
-function restoreSummary(result: ExportRestoreResponse) {
-  return `JSON restore completed: ${result.artists} artists, ${result.releases} releases, ${result.tracks} tracks, ${result.ownedItems} owned items.`
-}
-
-function readFileText(file: File) {
-  if ('text' in file && typeof file.text === 'function') {
-    return file.text()
-  }
-
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader()
-    reader.addEventListener('load', () => {
-      resolve(typeof reader.result === 'string' ? reader.result : '')
-    })
-    reader.addEventListener('error', () => {
-      reject(reader.error ?? new Error('Restore file could not be read.'))
-    })
-    reader.readAsText(file)
-  })
-}
-
-function errorMessage(error: unknown, fallback = 'Export failed.') {
-  return error instanceof Error ? error.message : fallback
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Export failed.'
 }
 
 async function exportErrorFromResponse(response: Response) {

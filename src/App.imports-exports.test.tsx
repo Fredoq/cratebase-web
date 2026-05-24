@@ -242,7 +242,7 @@ describe('App imports and exports', () => {
   })
 
   it('restores JSON backups and refreshes catalog state', async () => {
-    window.history.pushState({}, '', '/exports')
+    window.history.pushState({}, '', '/imports')
     h.clearCatalogForTests()
     const fetchMock = h.mockFetch(
       ...h.emptyCatalogLoadResponses(),
@@ -267,23 +267,25 @@ describe('App imports and exports', () => {
     )
     const user = h.userEvent.setup()
     h.render(<h.App />)
-    expect(await h.screen.findByText('0 releases')).toBeInTheDocument()
+    const restoreInput = await h.screen.findByLabelText(/restore json backup/i)
 
     await user.upload(
-      h.screen.getByLabelText(/restore json backup/i),
+      restoreInput,
       new File([JSON.stringify({ formatVersion: 1 })], 'cratebase.json', {
         type: 'application/json',
       }),
     )
 
     await h.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(25))
-    expect(fetchMock.mock.calls[12][0]).toBe('/api/exports/json/restore')
-    expect(fetchMock.mock.calls[12][1]).toMatchObject({
+    const restoreCall = fetchMock.mock.calls.find(
+      ([url]) => url === '/api/exports/json/restore',
+    )
+    expect(restoreCall?.[1]).toMatchObject({
       body: JSON.stringify({ formatVersion: 1 }),
       credentials: 'include',
       method: 'POST',
     })
-    expect((fetchMock.mock.calls[12][1] as RequestInit).headers).toMatchObject({
+    expect((restoreCall?.[1] as RequestInit).headers).toMatchObject({
       'Content-Type': 'application/json',
       'X-Cratebase-Confirm-Restore': 'restore-empty-collection',
     })
@@ -292,11 +294,10 @@ describe('App imports and exports', () => {
         'JSON restore completed: 1 artists, 1 releases, 1 tracks, 1 owned items.',
       ),
     ).toBeInTheDocument()
-    expect(await h.screen.findByText('0 releases')).toBeInTheDocument()
   })
 
   it('shows the empty collection restore requirement from the API', async () => {
-    window.history.pushState({}, '', '/exports')
+    window.history.pushState({}, '', '/imports')
     h.mockFetch(
       h.jsonResponse(
         {
@@ -322,7 +323,7 @@ describe('App imports and exports', () => {
   })
 
   it('rejects invalid JSON restore files before calling the API', async () => {
-    window.history.pushState({}, '', '/exports')
+    window.history.pushState({}, '', '/imports')
     const fetchMock = h.mockFetch()
     const user = h.userEvent.setup()
     h.render(<h.App />)

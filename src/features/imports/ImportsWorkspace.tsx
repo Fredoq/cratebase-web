@@ -1,5 +1,5 @@
-import { Download, FolderOpen } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { Download, FolderOpen, Upload } from 'lucide-react'
+import { useCallback, useEffect, useState, type ChangeEvent } from 'react'
 import './imports.css'
 import {
   CatalogApiError,
@@ -7,9 +7,11 @@ import {
   createDesktopFolderScan,
   getImportSession,
   loadImportSessions,
+  restoreJsonSnapshot,
   skipImportDraft,
   updateImportDraft,
   type CatalogDictionaries,
+  type ExportRestoreResponse,
   type ReleaseImportDraft,
   type ReleaseImportSession,
 } from '../catalog/catalogApi'
@@ -57,6 +59,10 @@ export function ImportsWorkspace({
   const [status, setStatus] = useState('Ready')
   const [error, setError] = useState<string | null>(null)
   const [pendingAction, setPendingAction] = useState<string | null>(null)
+  const [pendingRestore, setPendingRestore] = useState(false)
+  const [restoreInputKey, setRestoreInputKey] = useState(0)
+  const [restoreStatus, setRestoreStatus] = useState('Ready')
+  const [restoreError, setRestoreError] = useState<string | null>(null)
 
   const handleRequestError = useCallback(
     (requestError: unknown, nextStatus: string) => {
@@ -128,6 +134,45 @@ export function ImportsWorkspace({
       handleRequestError(requestError, 'Scan failed')
     } finally {
       setPendingAction(null)
+    }
+  }
+
+  async function handleRestoreFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0]
+    if (!file) {
+      return
+    }
+
+    setPendingRestore(true)
+    setRestoreStatus('Restoring JSON backup')
+    setRestoreError(null)
+
+    try {
+      const snapshot = JSON.parse(await readFileText(file)) as unknown
+      const result = await restoreJsonSnapshot(snapshot)
+      onCatalogChanged()
+      setRestoreStatus(restoreSummary(result))
+      setRestoreInputKey((key) => key + 1)
+    } catch (requestError) {
+      if (requestError instanceof SyntaxError) {
+        setRestoreError('Select a valid JSON backup.')
+      } else if (
+        requestError instanceof CatalogApiError &&
+        requestError.code === 'export_restore.collection_not_empty'
+      ) {
+        setRestoreError('Restore requires an empty collection.')
+      } else if (
+        requestError instanceof CatalogApiError &&
+        requestError.status === 401
+      ) {
+        onSessionExpired()
+      } else {
+        setRestoreError(errorMessage(requestError))
+      }
+      setRestoreStatus('Restore failed')
+      setRestoreInputKey((key) => key + 1)
+    } finally {
+      setPendingRestore(false)
     }
   }
 
@@ -267,6 +312,46 @@ export function ImportsWorkspace({
           </div>
         </section>
 
+        <section className="panel imports-restore-panel">
+          <div className="panel-heading">
+            <div>
+              <h2>Restore JSON backup</h2>
+              <p>Load a Cratebase JSON snapshot into an empty collection.</p>
+            </div>
+            <Upload size={18} aria-hidden="true" />
+          </div>
+          <div className="imports-restore-body">
+            <div className="imports-restore-row">
+              <span className="imports-restore-icon" aria-hidden="true">
+                <Upload size={18} strokeWidth={2.1} />
+              </span>
+              <span>
+                <strong>JSON backup</strong>
+                <small>Restores exported catalog data and settings.</small>
+              </span>
+              <label className="button button-secondary">
+                <input
+                  key={restoreInputKey}
+                  accept="application/json,.json"
+                  aria-label="Restore JSON backup"
+                  disabled={pendingRestore}
+                  onChange={(event) => {
+                    void handleRestoreFileChange(event)
+                  }}
+                  type="file"
+                />
+                {pendingRestore ? 'Restoring JSON' : 'Choose JSON'}
+              </label>
+            </div>
+            <p
+              className={restoreError ? 'imports-error' : 'imports-status'}
+              role={restoreError ? 'alert' : 'status'}
+            >
+              {restoreError ?? restoreStatus}
+            </p>
+          </div>
+        </section>
+
         <SessionsTable
           selectedSessionId={selectedSession?.id ?? ''}
           sessions={sessions}
@@ -330,4 +415,25 @@ export function ImportsWorkspace({
       )}
     </section>
   )
+}
+
+function restoreSummary(result: ExportRestoreResponse) {
+  return `JSON restore completed: ${result.artists} artists, ${result.releases} releases, ${result.tracks} tracks, ${result.ownedItems} owned items.`
+}
+
+function readFileText(file: File) {
+  if ('text' in file && typeof file.text === 'function') {
+    return file.text()
+  }
+
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.addEventListener('load', () => {
+      resolve(typeof reader.result === 'string' ? reader.result : '')
+    })
+    reader.addEventListener('error', () => {
+      reject(reader.error ?? new Error('Restore file could not be read.'))
+    })
+    reader.readAsText(file)
+  })
 }
