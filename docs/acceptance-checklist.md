@@ -11,6 +11,15 @@ and `cratebase-web`.
 - Bootstrap the first admin user when the database is empty.
 - Sign in and confirm catalog routes use the authenticated cookie.
 
+## Hosted Setup
+
+- Serve browser web and API traffic from one HTTPS origin.
+- Route `/api/*` and `/health` to the API container.
+- Route every other path to the web static container.
+- Keep browser API calls relative to `/api`.
+- Build private beta desktop packages with `CRATEBASE_API_BASE_URL=https://cratebase.example.com` until the real hosted domain is chosen.
+- Verify staging and production do not share PostgreSQL databases, service storage, secrets, invite data or user accounts.
+
 ## Acceptance Path
 
 1. Bootstrap a clean database and create the first admin user.

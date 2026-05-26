@@ -71,6 +71,26 @@ npm run desktop:build:mac
 npm run desktop:package:mac
 ```
 
+## Hosted Private Beta Baseline
+
+The browser web app is deployed behind the same public origin as the API. It
+uses relative `/api` requests, so hosted browser traffic does not require CORS.
+The placeholder private beta origin is `https://cratebase.example.com` until the
+real domain is chosen.
+
+The web Docker image builds the Vite app and serves static assets on internal
+HTTP port `8080`. A reverse proxy should route `/api/*` and `/health` to the API
+container and every other path to the web container.
+
+The desktop app connects to the hosted API through the Electron local proxy:
+
+```sh
+CRATEBASE_API_BASE_URL=https://cratebase.example.com npm run desktop:package:mac
+```
+
+The cross-repository compose and reverse proxy example lives in
+`../cratebase-api/deploy`.
+
 ## Verification
 
 ```sh
