@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { AppShell } from './AppShell'
+import {
+  CatalogErrorPanel,
+  CatalogStatusPanel,
+  CatalogSyncErrorNotice,
+} from './AuthenticatedAppPanels'
+import { catalogErrorMessage } from './catalogErrorMessage'
 import { isAppRoutePath, resolveRoute, type AppRoutePath } from './routes'
 import {
   CatalogApiError,
@@ -580,92 +586,6 @@ export function AuthenticatedApp({
       {workspace}
     </AppShell>
   )
-}
-
-function CatalogStatusPanel({ message }: { message: string }) {
-  return (
-    <section className="panel section-panel" aria-live="polite">
-      <div className="panel-heading">
-        <div>
-          <h2>Catalog</h2>
-          <p role="status">{message}</p>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function CatalogErrorPanel({
-  message,
-  onRetry,
-}: {
-  message: string
-  onRetry: () => void
-}) {
-  return (
-    <section className="panel section-panel" aria-live="polite">
-      <div className="panel-heading">
-        <div>
-          <h2>Catalog unavailable</h2>
-          <p role="alert">{message}</p>
-        </div>
-      </div>
-      <button
-        className="button button-secondary"
-        type="button"
-        onClick={onRetry}
-      >
-        Retry
-      </button>
-    </section>
-  )
-}
-
-function CatalogSyncErrorNotice({
-  message,
-  onRetry,
-}: {
-  message: string
-  onRetry: () => void
-}) {
-  return (
-    <section className="panel section-panel" aria-live="polite">
-      <div className="panel-heading">
-        <div>
-          <h2>Catalog sync failed</h2>
-          <p role="alert">{message}</p>
-          <p>Showing the last loaded catalog data.</p>
-        </div>
-      </div>
-      <button
-        className="button button-secondary"
-        type="button"
-        onClick={onRetry}
-      >
-        Retry catalog sync
-      </button>
-    </section>
-  )
-}
-
-function catalogErrorMessage(error: unknown) {
-  if (error instanceof CatalogApiError) {
-    if (error.status === 400 || error.status === 409) {
-      return error.message
-    }
-
-    if (error.status === 401) {
-      return 'Session expired. Sign in again.'
-    }
-
-    return 'Catalog request failed. Try again.'
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Catalog data could not be loaded.'
 }
 
 const fullCatalogRoutes = new Set<AppRoutePath>()
