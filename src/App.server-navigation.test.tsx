@@ -35,6 +35,91 @@ describe('App server-backed navigation', () => {
     })
   })
 
+  it('syncs same-route URL query changes into server-backed artist workspace state', async () => {
+    window.history.pushState({}, '', '/artists?query=alpha')
+    h.clearCatalogForTests()
+    const fetchMock = h.mockFetch(
+      h.emptySearchResponse(),
+      h.emptySearchResponse(),
+    )
+    h.render(<h.App />)
+
+    await h.waitFor(() => {
+      expect(
+        h
+          .searchRequestUrls(fetchMock)
+          .some((url) => url.searchParams.get('query') === 'alpha'),
+      ).toBe(true)
+    })
+
+    h.act(() => {
+      window.history.pushState({}, '', '/artists?query=beta')
+      window.dispatchEvent(new Event('cratebase:navigation'))
+    })
+
+    await h.waitFor(() => {
+      expect(
+        h
+          .searchRequestUrls(fetchMock)
+          .some((url) => url.searchParams.get('query') === 'beta'),
+      ).toBe(true)
+    })
+  })
+
+  it('debounces server-backed entity search typing', async () => {
+    window.history.pushState({}, '', '/releases')
+    h.clearCatalogForTests()
+    const fetchMock = h.mockFetch(
+      h.emptySearchResponse(),
+      h.emptySearchResponse(),
+    )
+    const user = h.userEvent.setup()
+    h.render(<h.App />)
+
+    await h.screen.findByText('No matching catalog entries.')
+    await user.type(h.screen.getByRole('searchbox'), 'beta')
+
+    await h.waitFor(() => {
+      expect(
+        h
+          .searchRequestUrls(fetchMock)
+          .some((url) => url.searchParams.get('query') === 'beta'),
+      ).toBe(true)
+    })
+    expect(
+      h
+        .searchRequestUrls(fetchMock)
+        .map((url) => url.searchParams.get('query') ?? ''),
+    ).toEqual(['', 'beta'])
+  })
+
+  it('debounces server-backed artist search typing', async () => {
+    window.history.pushState({}, '', '/artists')
+    h.clearCatalogForTests()
+    const fetchMock = h.mockFetch(
+      h.emptySearchResponse(),
+      h.emptySearchResponse(),
+    )
+    const user = h.userEvent.setup()
+    h.render(<h.App />)
+
+    await h.screen.findByText('No matching artists.')
+    await user.type(h.screen.getByRole('searchbox'), 'eno')
+
+    await h.waitFor(() => {
+      expect(
+        h
+          .searchRequestUrls(fetchMock)
+          .some((url) => url.searchParams.get('query') === 'eno'),
+      ).toBe(true)
+    })
+    expect(
+      h
+        .searchRequestUrls(fetchMock)
+        .map((url) => url.searchParams.get('query') ?? ''),
+    ).toEqual(['', 'eno'])
+  })
+
   it('shows mutation errors in server-backed workspaces', async () => {
     window.history.pushState({}, '', '/artists')
     h.clearCatalogForTests()

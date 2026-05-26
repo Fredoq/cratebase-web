@@ -17,6 +17,9 @@ import {
   resultKey,
   type ServerCatalogFilters,
 } from './catalogWorkspaceShared'
+import { useDebouncedValue } from './useDebouncedValue'
+
+const searchQueryDebounceMs = 250
 
 type ServerEntityWorkspaceProps = {
   ariaLabel: string
@@ -46,6 +49,7 @@ export function ServerEntityWorkspace({
     [locationSearch, queryParam],
   )
   const [query, setQuery] = useState(initialParams.query)
+  const debouncedQuery = useDebouncedValue(query, searchQueryDebounceMs)
   const [filters, setFilters] = useState<ServerCatalogFilters>(
     initialParams.filters,
   )
@@ -96,7 +100,7 @@ export function ServerEntityWorkspace({
     })
 
     void searchCatalog({
-      query,
+      query: debouncedQuery,
       savedView,
       entityType: entityType ?? filters.entityType,
       media: filters.media,
@@ -140,6 +144,7 @@ export function ServerEntityWorkspace({
       isCurrent = false
     }
   }, [
+    debouncedQuery,
     entityType,
     filters.entityType,
     filters.labelId,
@@ -147,7 +152,6 @@ export function ServerEntityWorkspace({
     filters.role,
     filters.status,
     filters.tag,
-    query,
     savedView,
     searchRefreshKey,
   ])

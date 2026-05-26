@@ -10,8 +10,11 @@ import {
 } from '../catalog/catalogApi'
 import { GraphDetailPanel } from '../catalog/CatalogGraphDetailPanel'
 import { resultKey } from '../catalog/catalogWorkspaceShared'
+import { useDebouncedValue } from '../catalog/useDebouncedValue'
 import { ArtistEntryForm } from './ArtistsWorkspace'
 import type { ArtistRecord } from './artistsData'
+
+const searchQueryDebounceMs = 250
 
 type ServerArtistsWorkspaceProps = {
   isManualEntryOpen?: boolean
@@ -45,6 +48,7 @@ export function ServerArtistsWorkspace({
     [locationSearch],
   )
   const [query, setQuery] = useState(initialParams.query)
+  const debouncedQuery = useDebouncedValue(query, searchQueryDebounceMs)
   const [filters, setFilters] = useState<ArtistFilters>(initialParams.filters)
   const [results, setResults] = useState<CatalogSearchResult[]>([])
   const [total, setTotal] = useState(0)
@@ -61,6 +65,24 @@ export function ServerArtistsWorkspace({
   const [graphStatus, setGraphStatus] = useState<
     'idle' | 'loading' | 'ready' | 'missing' | 'error'
   >('idle')
+
+  useEffect(() => {
+    let isCurrent = true
+
+    queueMicrotask(() => {
+      if (!isCurrent) {
+        return
+      }
+
+      setQuery(initialParams.query)
+      setFilters(initialParams.filters)
+      setSelectedResultId(initialParams.artistId)
+    })
+
+    return () => {
+      isCurrent = false
+    }
+  }, [initialParams])
 
   useEffect(() => {
     const nextUrl = buildArtistsUrl(query, filters, selectedResultId)
@@ -84,7 +106,7 @@ export function ServerArtistsWorkspace({
     })
 
     void searchCatalog({
-      query,
+      query: debouncedQuery,
       entityType: 'artist',
       role: filters.role,
       tag: filters.tag,
@@ -123,7 +145,7 @@ export function ServerArtistsWorkspace({
     return () => {
       isCurrent = false
     }
-  }, [filters.role, filters.tag, query, searchRefreshKey])
+  }, [debouncedQuery, filters.role, filters.tag, searchRefreshKey])
 
   const visibleResults = useMemo(() => {
     return results.filter(
