@@ -4,6 +4,65 @@ import * as h from './test/appTestHarness'
 h.setupAppTestHooks()
 
 describe('App server-backed navigation', () => {
+  it('syncs same-route URL query changes into server-backed workspace state', async () => {
+    window.history.pushState({}, '', '/releases?query=alpha')
+    h.clearCatalogForTests()
+    const fetchMock = h.mockFetch(
+      h.emptySearchResponse(),
+      h.emptySearchResponse(),
+    )
+    h.render(<h.App />)
+
+    await h.waitFor(() => {
+      expect(
+        h
+          .searchRequestUrls(fetchMock)
+          .some((url) => url.searchParams.get('query') === 'alpha'),
+      ).toBe(true)
+    })
+
+    h.act(() => {
+      window.history.pushState({}, '', '/releases?query=beta')
+      window.dispatchEvent(new Event('cratebase:navigation'))
+    })
+
+    await h.waitFor(() => {
+      expect(
+        h
+          .searchRequestUrls(fetchMock)
+          .some((url) => url.searchParams.get('query') === 'beta'),
+      ).toBe(true)
+    })
+  })
+
+  it('shows mutation errors in server-backed workspaces', async () => {
+    window.history.pushState({}, '', '/artists')
+    h.clearCatalogForTests()
+    const fetchMock = h.mockFetch(
+      h.emptySearchResponse(),
+      h.jsonResponse(
+        { code: 'catalog.server_error', message: 'Save failed' },
+        500,
+      ),
+    )
+    const user = h.userEvent.setup()
+    h.render(<h.App />)
+
+    await user.click(
+      await h.screen.findByRole('button', { name: 'Add artist' }),
+    )
+    const form = h.screen.getByRole('form', { name: 'Add artist' })
+    await user.type(h.within(form).getByLabelText('Name'), 'Failed Artist')
+    await user.click(h.within(form).getByRole('button', { name: 'Add record' }))
+
+    expect(await h.screen.findByRole('alert')).toHaveTextContent(
+      'Catalog request failed. Try again.',
+    )
+    expect(
+      fetchMock.mock.calls.some(([input]) => input === '/api/artists'),
+    ).toBe(true)
+  })
+
   it('does not hydrate the full catalog when navigating across server-backed workspaces', async () => {
     h.clearCatalogForTests()
     h.vi.stubGlobal('__cratebaseUseRealCatalogApi', true)

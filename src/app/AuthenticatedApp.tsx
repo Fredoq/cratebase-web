@@ -338,7 +338,7 @@ export function AuthenticatedApp({
       />
     ) : (
       <>
-        {catalogError && hasLoadedFullCatalog ? (
+        {catalogError ? (
           <CatalogSyncErrorNotice
             message={catalogError}
             onRetry={() => {

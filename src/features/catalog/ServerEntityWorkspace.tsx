@@ -73,6 +73,24 @@ export function ServerEntityWorkspace({
         return
       }
 
+      setQuery(initialParams.query)
+      setFilters(initialParams.filters)
+      setSelectedResultId(initialParams.selectedId)
+    })
+
+    return () => {
+      isCurrent = false
+    }
+  }, [initialParams])
+
+  useEffect(() => {
+    let isCurrent = true
+
+    queueMicrotask(() => {
+      if (!isCurrent) {
+        return
+      }
+
       setSearchStatus('loading')
       setSearchError('')
     })
