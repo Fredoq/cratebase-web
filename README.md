@@ -80,13 +80,13 @@ real domain is chosen.
 
 The web Docker image builds the Vite app and serves static assets on internal
 HTTP port `8080`. A reverse proxy should route `/api/*` and `/health` to the API
-container and every other path to the web container.
+container, route `/web-health` to the web container health check, and route every
+other path to the web container.
 
-The desktop app connects to the hosted API through the Electron local proxy:
-
-```sh
-CRATEBASE_API_BASE_URL=https://cratebase.example.com npm run desktop:package:mac
-```
+The desktop app connects to the hosted API through the Electron local proxy.
+Packaged builds default to `https://cratebase.example.com`, while development
+builds default to `http://localhost:5094`. Set `CRATEBASE_API_BASE_URL` at
+runtime when a desktop build must target another hosted origin.
 
 The cross-repository compose and reverse proxy example lives in
 `../cratebase-api/deploy`.

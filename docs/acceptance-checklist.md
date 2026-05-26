@@ -15,9 +15,10 @@ and `cratebase-web`.
 
 - Serve browser web and API traffic from one HTTPS origin.
 - Route `/api/*` and `/health` to the API container.
-- Route every other path to the web static container.
+- Route `/web-health` and every other path to the web static container.
 - Keep browser API calls relative to `/api`.
-- Build private beta desktop packages with `CRATEBASE_API_BASE_URL=https://cratebase.example.com` until the real hosted domain is chosen.
+- Confirm private beta desktop packages target `https://cratebase.example.com` by default, with `CRATEBASE_API_BASE_URL` available as a runtime override.
+- Build the API and web Docker images, then run the example compose stack and verify `/health`, `/web-health`, web routing and authenticated `/api` calls through the reverse proxy.
 - Verify staging and production do not share PostgreSQL databases, service storage, secrets, invite data or user accounts.
 
 ## Acceptance Path
