@@ -137,4 +137,35 @@ describe('App relation and credit navigation', () => {
         .getByRole('link', { name: 'Blue Monday' }),
     ).toHaveAttribute('href', '/tracks?track=track-2')
   })
+
+  it('replaces a stale relation deep link when relation search returns matches', async () => {
+    window.history.pushState(
+      {},
+      '',
+      '/relations?relation=artist-relation-1&query=blue',
+    )
+    h.clearCatalogForTests()
+    h.mockFetch(
+      f.searchResponseWithTrack(),
+      f.artistRelationDetailResponse(),
+      f.graphResponseForTrackNavigation(),
+    )
+
+    h.render(<h.App />)
+
+    const detailPanel = await h.screen.findByRole('complementary', {
+      name: 'Blue Monday (Hardfloor Mix)',
+    })
+
+    expect(window.location.pathname).toBe('/relations')
+    expect(window.location.search).toBe('?relation=track-1&query=blue')
+    expect(
+      h
+        .within(h.detailSection(detailPanel, 'Tracks'))
+        .getByRole('link', { name: 'Blue Monday' }),
+    ).toHaveAttribute('href', '/tracks?track=track-2')
+    expect(
+      h.screen.queryByRole('heading', { name: 'Arthur Baker to New Order' }),
+    ).not.toBeInTheDocument()
+  })
 })

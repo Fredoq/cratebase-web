@@ -143,7 +143,7 @@ export function ServerEntityWorkspace({
         setSelectedResultId((currentId) =>
           response.items.some((item) => item.id === currentId)
             ? currentId
-            : isRelationWorkspace && currentId
+            : isRelationWorkspace && currentId && response.items.length === 0
               ? currentId
               : (response.items[0]?.id ?? ''),
         )
