@@ -34,7 +34,7 @@ describe('App search v1 UI', () => {
   it('derives label filter options from server label results and sends combined filters', async () => {
     h.clearCatalogForTests()
     const fetchMock = h.mockFetch(
-      ...Array.from({ length: 6 }).flatMap(() => [
+      ...Array.from({ length: 20 }).flatMap(() => [
         searchResponseWithProducerTrack({ includeLabelResult: true }),
         graphResponse(),
       ]),
@@ -72,6 +72,54 @@ describe('App search v1 UI', () => {
         }),
       ).toBe(true)
     })
+  })
+
+  it('opens relation graph links and shows active-collection boundary misses', async () => {
+    h.clearCatalogForTests()
+    const fetchMock = h.mockFetch(
+      searchResponseWithProducerTrack(),
+      graphResponseWithRelation(),
+      h.emptySearchResponse(),
+      h.jsonResponse({ code: 'artist_relation.not_found' }, 404),
+      h.jsonResponse({ code: 'track_relation.not_found' }, 404),
+    )
+    const user = h.userEvent.setup()
+
+    h.render(<h.App />)
+
+    await user.click(
+      await h.screen.findByRole('link', {
+        name: 'Archive Producer Cut to Private Dub',
+      }),
+    )
+
+    await h.waitFor(() => {
+      expect(window.location.pathname).toBe('/relations')
+      expect(window.location.search).toBe('?relation=private-relation')
+    })
+    await h.waitFor(() => {
+      expect(
+        h.searchRequestUrls(fetchMock).some((url) => {
+          const params = url.searchParams
+
+          return (
+            params.get('savedView') === 'credits' &&
+            params.get('limit') === '100'
+          )
+        }),
+      ).toBe(true)
+    })
+
+    expect(
+      await h.screen.findByText(
+        'Relation private-relation is no longer available in the active collection.',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      h.screen.queryByRole('heading', {
+        name: 'Archive Producer Cut to Private Dub',
+      }),
+    ).not.toBeInTheDocument()
   })
 })
 
@@ -151,6 +199,38 @@ function graphResponse() {
       playlists: [],
       credits: [],
       relations: [],
+      media: [],
+    },
+    collectorSignals: ['Physical media without digital copy'],
+  })
+}
+
+function graphResponseWithRelation() {
+  return h.jsonResponse({
+    entity: {
+      id: 'track-producer',
+      type: 'track',
+      title: 'Archive Producer Cut',
+      subtitle: 'Track',
+      summary: 'Producer credit on a vinyl catalog track.',
+    },
+    sections: {
+      artists: [],
+      releases: [],
+      tracks: [],
+      ownedCopies: [],
+      labels: [],
+      playlists: [],
+      credits: [],
+      relations: [
+        {
+          id: 'private-relation',
+          type: 'relation',
+          title: 'Archive Producer Cut to Private Dub',
+          subtitle: 'remixOf',
+          relation: 'track relation',
+        },
+      ],
       media: [],
     },
     collectorSignals: ['Physical media without digital copy'],
