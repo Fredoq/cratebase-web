@@ -290,8 +290,8 @@ export function OwnedItemEntryForm({
       ? {
           targetType: 'Track' as const,
           targetId: selectedTrack.id,
-          releaseId: undefined,
-          title: selectedTrack.title,
+          releaseId: selectedTrack.release.id,
+          title: selectedTrack.release.title,
           artist: selectedTrack.artist,
         }
       : selectedRelease
