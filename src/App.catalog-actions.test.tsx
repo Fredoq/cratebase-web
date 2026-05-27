@@ -353,6 +353,34 @@ describe('App catalog actions', () => {
     ).toBeInTheDocument()
   })
 
+  it('creates a label from the catalog add entry flow', async () => {
+    const user = h.userEvent.setup()
+    h.render(<h.App />)
+
+    await user.click(h.screen.getByRole('button', { name: 'Add entry' }))
+    await user.click(
+      h.screen.getByRole('button', { name: 'Create label entry' }),
+    )
+
+    const form = h.screen.getByRole('form', { name: 'Add label' })
+    await user.type(
+      h.within(form).getByLabelText('Name'),
+      'Catalog Route Label',
+    )
+    await user.click(h.within(form).getByRole('button', { name: 'Add record' }))
+
+    expect(
+      h.screen.queryByRole('form', { name: 'Add label' }),
+    ).not.toBeInTheDocument()
+    expect(h.screen.getByRole('status')).toHaveTextContent('Label saved.')
+
+    await user.click(h.screen.getByRole('link', { name: 'Labels' }))
+
+    expect(
+      h.screen.getByRole('row', { name: /catalog route label/i }),
+    ).toHaveAttribute('aria-selected', 'true')
+  })
+
   it('shows catalog add entry API errors without blocking previous catalog data', async () => {
     h.clearCatalogForTests()
     h.mockFetch(
@@ -555,6 +583,15 @@ describe('App catalog actions', () => {
         await h.addReleaseLabel(user, releaseForm)
         await h.selectReleaseGenre(user, releaseForm)
         await h.addReleaseTrackRow(user, releaseForm)
+      }
+
+      if (form === 'Add owned item') {
+        await user.selectOptions(
+          h
+            .within(h.screen.getByRole('form', { name: form }))
+            .getByLabelText('Existing release'),
+          'selected-ambient-works-85-92',
+        )
       }
 
       if (secondaryRequiredLabel && secondaryValue) {
