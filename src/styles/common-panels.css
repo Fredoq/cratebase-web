@@ -72,14 +72,16 @@
 
 .catalog-panel {
   min-width: 0;
-  overflow: hidden;
 }
 
 .catalog-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 980px;
   table-layout: fixed;
+}
+
+.table-scroll > .catalog-table {
+  min-width: 980px;
 }
 
 .catalog-table th,
