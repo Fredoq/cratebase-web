@@ -3,6 +3,89 @@ import * as h from './test/appTestHarness'
 
 h.setupAppTestHooks()
 
+const desktopAudioContentHash =
+  '70bc8f4b72a86921468bf8e8441dce51d8c6cb7d792fa7bbcb0d4d9eba328b75'
+
+function importSessionDetailResponse(status: 'needsReview' | 'confirmed') {
+  return h.jsonResponse({
+    id: 'import-session-1',
+    sourceRoot: '/Users/example/Music',
+    status: status === 'confirmed' ? 'confirmed' : 'readyForReview',
+    draftCount: 1,
+    trackCount: 1,
+    ignoredFileCount: 0,
+    createdAt: '2026-05-16T12:00:00Z',
+    updatedAt: '2026-05-16T12:00:00Z',
+    drafts: [
+      {
+        id: 'draft-1',
+        sourcePath: '/Users/example/Music/Release',
+        relativePath: 'Release',
+        status,
+        title: 'Imported Release',
+        type: 'album',
+        catalogNumber: null,
+        labelName: null,
+        releaseDate: null,
+        year: 1992,
+        isVariousArtists: false,
+        notOnLabel: true,
+        artistNames: ['Aphex Twin'],
+        artistCredits: [],
+        selectedArtistIds: [],
+        artistSuggestions: [],
+        labels: [],
+        genres: [],
+        tags: ['local-import'],
+        coverPath: 'Release/cover.jpg',
+        issues: [],
+        tracks: [
+          {
+            id: 'draft-track-1',
+            filePath: '/Users/example/Music/Release/01 Track.flac',
+            relativePath: 'Release/01 Track.flac',
+            format: 'flac',
+            sizeBytes: 12,
+            lastModifiedAt: '2026-05-16T12:00:00Z',
+            durationSeconds: null,
+            position: 1,
+            title: 'Track',
+            artistNames: ['Aphex Twin'],
+            artistCredits: [],
+            artistSuggestions: [],
+            trackSuggestions: [],
+            isSkipped: false,
+            selectedTrackId: null,
+            selectedArtistIds: [],
+            issues: [],
+          },
+        ],
+      },
+    ],
+  })
+}
+
+function importSessionListResponse() {
+  return h.jsonResponse({
+    items: [
+      {
+        id: 'import-session-1',
+        sourceRoot: '/Users/example/Music',
+        status: 'readyForReview',
+        draftCount: 1,
+        trackCount: 1,
+        ignoredFileCount: 0,
+        createdAt: '2026-05-16T12:00:00Z',
+        updatedAt: '2026-05-16T12:00:00Z',
+        drafts: [],
+      },
+    ],
+    limit: 100,
+    offset: 0,
+    total: 1,
+  })
+}
+
 describe('App imports and exports', () => {
   it('shows the desktop download CTA for local imports in web mode', () => {
     window.history.pushState({}, '', '/imports')
@@ -120,6 +203,144 @@ describe('App imports and exports', () => {
     } finally {
       window.cratebaseDesktop = originalDesktopBridge
     }
+  })
+
+  it('posts desktop scan results, selects the first draft, and sends no audio bytes', async () => {
+    vi.stubGlobal('__cratebaseUseRealCatalogApi', true)
+    window.history.pushState({}, '', '/imports')
+    const pickAndScan = vi.fn().mockResolvedValue({
+      cancelled: false,
+      scan: {
+        sourceRoot: '/Users/example/Music',
+        ignoredFileCount: 1,
+        files: [
+          {
+            filePath: '/Users/example/Music/Release/01 Track.flac',
+            relativePath: 'Release/01 Track.flac',
+            format: 'flac',
+            sizeBytes: 12,
+            lastModifiedAt: '2026-05-16T12:00:00Z',
+            contentHash: desktopAudioContentHash,
+            audioMetadata: {
+              title: 'Track',
+              artists: ['Aphex Twin'],
+              albumTitle: 'Imported Release',
+              albumArtists: ['Aphex Twin'],
+              catalogNumber: null,
+              releaseDate: null,
+              year: 1992,
+              durationSeconds: null,
+              trackNumber: 1,
+            },
+            coverArtifact: null,
+          },
+          {
+            filePath: '/Users/example/Music/Release/cover.jpg',
+            relativePath: 'Release/cover.jpg',
+            format: null,
+            sizeBytes: 11,
+            lastModifiedAt: '2026-05-16T12:00:00Z',
+            audioMetadata: null,
+            coverArtifact: {
+              fileName: 'cover.jpg',
+              extension: '.jpg',
+              contentType: 'image/jpeg',
+              sizeBytes: 11,
+              contentBase64: 'Y292ZXIgYnl0ZXM=',
+            },
+          },
+        ],
+      },
+    })
+    const originalDesktopBridge = window.cratebaseDesktop
+    window.cratebaseDesktop = {
+      isDesktop: true,
+      exports: { download: vi.fn() },
+      imports: { pickAndScan },
+    }
+    const fetchMock = h.mockFetch(
+      h.emptyImportSessionsResponse(),
+      importSessionDetailResponse('needsReview'),
+      importSessionListResponse(),
+    )
+
+    try {
+      const user = h.userEvent.setup()
+      h.render(<h.App />)
+
+      await user.click(
+        await h.screen.findByRole('button', { name: /choose local folder/i }),
+      )
+
+      expect(await h.screen.findByText('Scan saved')).toBeInTheDocument()
+      expect(h.screen.getByDisplayValue('Imported Release')).toBeVisible()
+      expect(h.screen.getByText('Ready to confirm.')).toBeInTheDocument()
+      const scanCall = fetchMock.mock.calls.find(
+        ([url]) => url === '/api/imports/desktop-folder-scans',
+      )
+      expect(scanCall).toBeDefined()
+      const requestBody = JSON.parse(
+        ((scanCall?.[1] as RequestInit).body as string) ?? '{}',
+      ) as { files: Array<Record<string, unknown>> }
+      const requestJson = JSON.stringify(requestBody)
+      expect(requestJson).not.toContain('collectionId')
+      expect(requestBody.files[0]).toMatchObject({
+        relativePath: 'Release/01 Track.flac',
+        contentHash: desktopAudioContentHash,
+        coverArtifact: null,
+      })
+      expect(requestBody.files[0]).not.toHaveProperty('contentBase64')
+      expect(requestBody.files[0]).not.toHaveProperty('audioContentBase64')
+      expect(JSON.stringify(requestBody.files[0])).not.toContain(
+        'ZmFrZSBmbGFjIGJ5dGVz',
+      )
+      expect(requestBody.files[1]).toMatchObject({
+        relativePath: 'Release/cover.jpg',
+        coverArtifact: {
+          contentBase64: 'Y292ZXIgYnl0ZXM=',
+        },
+      })
+    } finally {
+      window.cratebaseDesktop = originalDesktopBridge
+    }
+  })
+
+  it('cancels import confirmation before save or catalog writes when not confirmed', async () => {
+    vi.stubGlobal('__cratebaseUseRealCatalogApi', true)
+    window.history.pushState({}, '', '/imports')
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    const fetchMock = h.mockFetch(
+      importSessionListResponse(),
+      importSessionDetailResponse('needsReview'),
+      importSessionDetailResponse('needsReview'),
+      importSessionDetailResponse('confirmed'),
+      importSessionListResponse(),
+    )
+    const user = h.userEvent.setup()
+    h.render(<h.App />)
+
+    await user.click(
+      await h.screen.findByRole('button', { name: /\/Users\/example\/Music/i }),
+    )
+    await h.screen.findByText('Ready to confirm.')
+    await user.click(h.screen.getByRole('button', { name: /^confirm$/i }))
+
+    await h.waitFor(() =>
+      expect(confirm).toHaveBeenCalledWith(
+        'Confirm this import draft and create catalog records?',
+      ),
+    )
+    expect(await h.screen.findByText('Confirmation cancelled')).toBeVisible()
+    expect(
+      fetchMock.mock.calls.some(
+        ([url]) => typeof url === 'string' && url.includes('/drafts/'),
+      ),
+    ).toBe(false)
+    expect(
+      fetchMock.mock.calls.some(
+        ([url]) => typeof url === 'string' && url.includes('/confirm'),
+      ),
+    ).toBe(false)
   })
 
   it('shows portable export downloads for the active collection', () => {

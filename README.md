@@ -56,7 +56,7 @@ The Vite dev server usually listens on `http://localhost:5173`. Open the web URL
 
 ## Desktop Development
 
-The desktop app packages the same UI through Electron and enables local folder import. It scans audio metadata and SHA-256 content hashes locally, then sends metadata, file identity, paths and cover artifacts to the API. It does not upload audio files.
+The desktop app packages the same UI through Electron and enables local folder import. It scans audio metadata and SHA-256 content hashes locally, then sends metadata, file identity, paths and cover artifacts to the API. It does not upload audio files. The hosted desktop submission contract is documented in the sibling API repository at `cratebase-api/docs/imports/desktop-import-api-boundary.md`.
 
 Run the API first, then start the desktop app in development mode:
 
@@ -108,7 +108,7 @@ npm run build
 - Workspaces for artists, releases, tracks, owned items, labels, relations, playlists, imports, exports and settings.
 - Server graph context in catalog detail panels, including credits, relations, media, collector signals and playlist backlinks.
 - Persistent manual and smart playlists through `/api/playlists`.
-- Desktop local folder import with streaming SHA-256 hashes and duplicate review warnings.
+- Browser import review and desktop-only local folder scanning through the Electron preload bridge, with streaming SHA-256 hashes and duplicate review warnings.
 - JSON and CSV export downloads in browser and desktop modes.
 - JSON restore into an empty active collection.
 
@@ -118,7 +118,7 @@ See [docs/acceptance-checklist.md](docs/acceptance-checklist.md) for the shared 
 
 - Smart playlist editing currently exposes simple rule text and preserves server rules when editing existing smart playlists.
 - Manual playlist creation can persist ordered server catalog links; free-form draft links are kept client-side until linked to catalog IDs.
-- The browser app can review import sessions but cannot browse arbitrary local folders.
+- The browser app can review import sessions but cannot browse arbitrary local folders or show the desktop folder picker.
 - There is no streaming player, social graph, marketplace, recommendation engine or external catalog integration.
 - Cratebase Web is a working catalog, search and relation-navigation interface, not a public profile system or mobile-first app.
 
