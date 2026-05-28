@@ -93,6 +93,10 @@ creates the first admin account and its default private collection.
 
 The cross-repository compose and reverse proxy example lives in
 `../cratebase-api/deploy`.
+Private beta data handling, hosted backup ownership, and release readiness are
+documented in
+`../cratebase-api/docs/private-beta/data-handling-and-trust.md` and
+`../cratebase-api/docs/private-beta/release-readiness.md`.
 
 ## Verification
 
@@ -121,6 +125,9 @@ export v1 contract is documented in
 `../cratebase-api/docs/exports/portable-export-v1.md`. User-triggered JSON and
 CSV exports are portability tools and personal backups; hosted service backups
 are an operator-managed responsibility outside the export UI.
+Private beta data handling and release readiness are tracked in
+`../cratebase-api/docs/private-beta/data-handling-and-trust.md` and
+`../cratebase-api/docs/private-beta/release-readiness.md`.
 
 See [docs/acceptance-checklist.md](docs/acceptance-checklist.md) for the shared acceptance path.
 

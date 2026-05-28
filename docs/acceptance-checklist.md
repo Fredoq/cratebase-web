@@ -20,6 +20,7 @@ and `cratebase-web`.
 - Confirm private beta desktop packages target `https://cratebase.example.com` by default, with `CRATEBASE_API_BASE_URL` available as a runtime override.
 - Build the API and web Docker images, then run the example compose stack and verify `/health`, `/web-health`, web routing and authenticated `/api` calls through the reverse proxy.
 - Verify staging and production do not share PostgreSQL databases, service storage, secrets, invite data or user accounts.
+- Review `cratebase-api/docs/private-beta/data-handling-and-trust.md` and `cratebase-api/docs/private-beta/release-readiness.md` before private beta evidence is collected.
 
 ## Acceptance Path
 
@@ -69,4 +70,5 @@ npm run build
 - Browser import review is supported, but local folder scanning is desktop-only through the Electron preload bridge. The API boundary is documented in `cratebase-api/docs/imports/desktop-import-api-boundary.md`.
 - Audio files are not uploaded to the API.
 - User-triggered JSON and CSV exports are portability tools and personal backups. Hosted service backups are separate operator-managed recovery work, and the export v1 contract is documented in `cratebase-api/docs/exports/portable-export-v1.md`.
+- Private beta data-handling and release-readiness expectations are documented in `cratebase-api/docs/private-beta/data-handling-and-trust.md` and `cratebase-api/docs/private-beta/release-readiness.md`.
 - External catalog integrations, streaming, marketplace, social, and recommendation features are outside the product boundary.
