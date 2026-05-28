@@ -101,6 +101,11 @@ describe('App imports and exports', () => {
     expect(
       h.screen.queryByRole('button', { name: /choose local folder/i }),
     ).not.toBeInTheDocument()
+    expect(
+      h.screen.getByText(
+        /Desktop import sends metadata, hashes, paths and cover artifacts, not audio files/i,
+      ),
+    ).toBeVisible()
   })
 
   it('loads import review sessions from the authenticated API', async () => {
@@ -364,6 +369,26 @@ describe('App imports and exports', () => {
     expect(
       h.screen.getByRole('button', { name: /download csv/i }),
     ).toBeEnabled()
+    expect(
+      h.screen.getByText(
+        /User exports are portable snapshots for personal backup and spreadsheet work/i,
+      ),
+    ).toBeVisible()
+    expect(
+      h.screen.getByText(
+        /Hosted service backups are operated separately from these JSON and CSV downloads/i,
+      ),
+    ).toBeVisible()
+    expect(
+      h.screen.getByText(
+        /Export v1 includes confirmed catalog data and omits audio bytes, raw cover bytes, import review drafts and account data/i,
+      ),
+    ).toBeVisible()
+    expect(
+      h.screen.getByText(
+        /JSON restore is available only for an empty active collection/i,
+      ),
+    ).toBeVisible()
   })
 
   it('starts JSON exports through authenticated direct browser downloads', async () => {
@@ -393,6 +418,35 @@ describe('App imports and exports', () => {
     expect(createObjectURL).not.toHaveBeenCalled()
     expect(revokeObjectURL).not.toHaveBeenCalled()
     expect(await h.screen.findByText('JSON export started')).toBeInTheDocument()
+  })
+
+  it('starts CSV exports through authenticated direct browser downloads', async () => {
+    window.history.pushState({}, '', '/exports')
+    const { click, createObjectURL, download, revokeObjectURL } =
+      h.stubBrowserExportDownload()
+    const fetchMock = h.mockFetch(
+      new Response(null, {
+        headers: {
+          'Content-Disposition': 'attachment; filename="cratebase.zip"',
+        },
+        status: 200,
+      }),
+    )
+    const user = h.userEvent.setup()
+    h.render(<h.App />)
+
+    await user.click(h.screen.getByRole('button', { name: /download csv/i }))
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/exports/csv', {
+      credentials: 'include',
+      method: 'HEAD',
+    })
+    expect(click).toHaveBeenCalledOnce()
+    expect(download.href).toBe('/api/exports/csv')
+    expect(download.fileName).toBe('cratebase.zip')
+    expect(createObjectURL).not.toHaveBeenCalled()
+    expect(revokeObjectURL).not.toHaveBeenCalled()
+    expect(await h.screen.findByText('CSV export started')).toBeInTheDocument()
   })
 
   it('shows export server failures accessibly and resets pending state', async () => {
@@ -454,6 +508,10 @@ describe('App imports and exports', () => {
 
       expect(downloadExport).toHaveBeenCalledWith('json')
       expect(await h.screen.findByText('JSON export saved')).toBeInTheDocument()
+      await user.click(h.screen.getByRole('button', { name: /download csv/i }))
+
+      expect(downloadExport).toHaveBeenCalledWith('csv')
+      expect(await h.screen.findByText('CSV export saved')).toBeInTheDocument()
       expect(
         h.screen.queryByRole('link', { name: /download json/i }),
       ).not.toBeInTheDocument()

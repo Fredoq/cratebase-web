@@ -88,6 +88,9 @@ Packaged builds default to `https://cratebase.example.com`, while development
 builds default to `http://localhost:5094`. Set `CRATEBASE_API_BASE_URL` at
 runtime when a desktop build must target another hosted origin.
 
+Private beta users sign in with issued credentials. The first bootstrap setup
+creates the first admin account and its default private collection.
+
 The cross-repository compose and reverse proxy example lives in
 `../cratebase-api/deploy`.
 
@@ -111,6 +114,13 @@ npm run build
 - Browser import review and desktop-only local folder scanning through the Electron preload bridge, with streaming SHA-256 hashes and duplicate review warnings.
 - JSON and CSV export downloads in browser and desktop modes.
 - JSON restore into an empty active collection.
+
+The desktop import API boundary is documented in
+`../cratebase-api/docs/imports/desktop-import-api-boundary.md`. The portable
+export v1 contract is documented in
+`../cratebase-api/docs/exports/portable-export-v1.md`. User-triggered JSON and
+CSV exports are portability tools and personal backups; hosted service backups
+are an operator-managed responsibility outside the export UI.
 
 See [docs/acceptance-checklist.md](docs/acceptance-checklist.md) for the shared acceptance path.
 
