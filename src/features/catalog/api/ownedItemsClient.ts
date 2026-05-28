@@ -1,8 +1,8 @@
 import type { OwnedItemRecord } from '../../ownedItems/ownedItemsData'
 import { activeDictionaries } from './catalogDefaults'
 import { toOwnedItemRecord } from './catalogEntityMappers'
-import { getAllPages } from './httpClient'
-import type { ListResponse, OwnedItemDto } from './catalogTypes'
+import { getList } from './httpClient'
+import { pageSize, type ListResponse, type OwnedItemDto } from './catalogTypes'
 
 export type OwnedItemInventoryParams = {
   status?: string
@@ -15,9 +15,11 @@ export type OwnedItemInventoryParams = {
 export async function loadOwnedItemInventory(
   params: OwnedItemInventoryParams = {},
 ): Promise<ListResponse<OwnedItemRecord>> {
-  const response = await getAllPages<OwnedItemDto>(
-    '/api/owned-items',
-    ownedItemInventoryQueryParams(params),
+  const query = new URLSearchParams(ownedItemInventoryQueryParams(params))
+  query.set('limit', String(pageSize))
+  query.set('offset', '0')
+  const response = await getList<OwnedItemDto>(
+    `/api/owned-items?${query.toString()}`,
   )
 
   return {

@@ -23,6 +23,24 @@ describe('App owned item inventory workspace', () => {
     expect(urls.some((url) => url.startsWith('/api/search?'))).toBe(false)
   })
 
+  it('loads only the first server page for the inventory workspace', async () => {
+    window.history.pushState({}, '', '/owned-items')
+    h.clearCatalogForTests()
+    const fetchMock = h.mockFetch(inventoryResponse({ total: 250 }))
+
+    h.render(<h.App />)
+
+    expect(
+      await h.screen.findByRole('row', { name: /blue monday/i }),
+    ).toBeInTheDocument()
+
+    const urls = requestUrls(fetchMock).filter((url) =>
+      url.startsWith('/api/owned-items?'),
+    )
+    expect(urls).toEqual(['/api/owned-items?limit=100&offset=0'])
+    expect(h.screen.getByText('2 shown · 250 total')).toBeInTheDocument()
+  })
+
   it('sends URL-backed inventory filters to the owned items API', async () => {
     window.history.pushState(
       {},
@@ -133,7 +151,7 @@ function ownedItemsRequestUrls(fetchMock: ReturnType<typeof h.mockFetch>) {
     .map((url) => new URL(url, window.location.origin))
 }
 
-function inventoryResponse() {
+function inventoryResponse({ total = 2 }: { total?: number } = {}) {
   return h.jsonResponse({
     items: [
       {
@@ -187,6 +205,6 @@ function inventoryResponse() {
     ],
     limit: 100,
     offset: 0,
-    total: 2,
+    total,
   })
 }
