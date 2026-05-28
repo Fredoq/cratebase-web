@@ -1,6 +1,7 @@
 import type { ArtistRecord } from '../../artists/artistsData'
 import type { LabelRecord } from '../../labels/labelsData'
 import type { OwnedItemRecord } from '../../ownedItems/ownedItemsData'
+import type { OwnedItemTargetRecord } from '../../ownedItems/ownedItemsData'
 import type {
   OwnedCopy,
   ReleaseArtistCredit,
@@ -43,6 +44,7 @@ import type {
   EntityRating,
   LabelDto,
   OwnedItemDto,
+  OwnedItemTargetDto,
   ReleaseDto,
   ReleaseTrackContext,
   TrackDto,
@@ -422,6 +424,7 @@ export function toOwnedItemRecord(
     item.targetType === 'release' ? releasesById.get(item.targetId) : undefined
   const track =
     item.targetType === 'track' ? tracksById.get(item.targetId) : undefined
+  const target = toOwnedItemTargetRecord(item.target)
   const releaseRecord = release
     ? releases.find((record) => record.id === release.id)
     : undefined
@@ -432,13 +435,21 @@ export function toOwnedItemRecord(
 
   return {
     id: item.id,
-    title: release?.title ?? track?.title ?? 'Owned item',
+    title: release?.title ?? track?.title ?? target?.title ?? 'Owned item',
     targetType: item.targetType === 'track' ? 'Track' : 'Release',
     targetId: item.targetId,
-    releaseId: release?.id ?? trackRecord?.release.id,
+    target,
+    releaseId: release?.id ?? trackRecord?.release.id ?? target?.releaseId,
     releaseTitle:
-      release?.title ?? trackRecord?.release.title ?? 'Unlinked catalog item',
-    artist: releaseRecord?.artist ?? trackRecord?.artist ?? 'Unknown artist',
+      release?.title ??
+      trackRecord?.release.title ??
+      target?.releaseTitle ??
+      'Unlinked catalog item',
+    artist:
+      releaseRecord?.artist ??
+      trackRecord?.artist ??
+      target?.subtitle ??
+      'Unknown artist',
     medium: mediumLabel(item.medium, dictionaries),
     status,
     statusTone: statusToneFor(status),
@@ -462,6 +473,30 @@ export function toOwnedItemRecord(
         ? 'Needs digitization'
         : 'No digitization state recorded',
     tags: [],
+    inventorySignals: item.inventorySignals ?? [],
+  }
+}
+
+function toOwnedItemTargetRecord(
+  target: OwnedItemTargetDto | null | undefined,
+): OwnedItemTargetRecord | undefined {
+  if (!target) {
+    return undefined
+  }
+
+  return {
+    type: target.type === 'track' ? 'Track' : 'Release',
+    id: target.id,
+    title: target.title,
+    subtitle: target.subtitle ?? '',
+    releaseId:
+      target.releaseId ??
+      (target.type === 'release' ? target.id : undefined) ??
+      undefined,
+    releaseTitle:
+      target.releaseTitle ??
+      (target.type === 'release' ? target.title : undefined) ??
+      undefined,
   }
 }
 
