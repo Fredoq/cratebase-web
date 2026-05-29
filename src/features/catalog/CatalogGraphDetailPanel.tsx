@@ -286,6 +286,7 @@ function ServerReleaseCoverPanel({
     let isCurrent = true
     queueMicrotask(() => {
       if (isCurrent) {
+        setCoverImage(undefined)
         setCoverLoadStatus('loading')
       }
     })
@@ -320,7 +321,11 @@ function ServerReleaseCoverPanel({
   )
 
   return (
-    <section className="detail-section" aria-labelledby="release-cover-title">
+    <section
+      className="detail-section"
+      aria-busy={coverLoadStatus === 'loading'}
+      aria-labelledby="release-cover-title"
+    >
       <h3 id="release-cover-title">Cover</h3>
       <ReleaseCoverPanel
         release={release}
@@ -341,12 +346,6 @@ function ServerReleaseCoverPanel({
             : undefined
         }
       />
-      {coverLoadStatus === 'loading' ? (
-        <p role="status">Loading cover...</p>
-      ) : null}
-      {coverLoadStatus === 'error' ? (
-        <p role="alert">Cover image could not be loaded.</p>
-      ) : null}
     </section>
   )
 }
@@ -386,10 +385,14 @@ function mergeArtistLinks(
       }
 
       const role = formatRoleFacet(candidate ?? '', dictionaries)
+      if (role !== 'Artist' && existing.roleSet.has('Artist')) {
+        existing.roleSet.delete('Artist')
+        existing.roles = existing.roles.filter(
+          (existingRole) => existingRole !== 'Artist',
+        )
+      }
+
       if (!existing.roleSet.has(role)) {
-        if (existing.roles.length === 1 && existing.roles[0] === 'Artist') {
-          existing.roles = []
-        }
         existing.roleSet.add(role)
         existing.roles.push(role)
       }
@@ -397,6 +400,7 @@ function mergeArtistLinks(
 
     if (existing.roles.length === 0) {
       existing.roles.push('Artist')
+      existing.roleSet.add('Artist')
     }
 
     artists.set(key, existing)
@@ -449,8 +453,7 @@ function isRedundantGroupLabel(
     normalizedTitle === normalizedLabel ||
     (normalizedTitle === 'tracks' && normalizedLabel === 'tracklist') ||
     (normalizedTitle === 'labels' && normalizedLabel === 'label') ||
-    (normalizedTitle === 'ownedcopies' && normalizedLabel === 'ownedcopy') ||
-    (normalizedTitle === 'mediacoverage' && normalizedLabel === 'mediacoverage')
+    (normalizedTitle === 'ownedcopies' && normalizedLabel === 'ownedcopy')
   )
 }
 

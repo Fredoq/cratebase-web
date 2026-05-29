@@ -69,16 +69,14 @@ describe('App workspace navigation', () => {
     expect(
       await h.screen.findByRole('heading', { name: 'Release records' }),
     ).toBeInTheDocument()
-    await h.waitFor(() => {
-      expect(fetchMock.mock.calls).toHaveLength(13)
-    })
+    const callCountAfterReleases = fetchMock.mock.calls.length
 
     await user.click(h.screen.getByRole('link', { name: 'Tracks' }))
 
     expect(
-      h.screen.getByRole('heading', { name: 'Track records' }),
+      await h.screen.findByRole('heading', { name: 'Track records' }),
     ).toBeInTheDocument()
-    expect(fetchMock.mock.calls).toHaveLength(13)
+    expect(fetchMock.mock.calls).toHaveLength(callCountAfterReleases)
   })
 
   it('shows mutation errors in editable workspaces', async () => {

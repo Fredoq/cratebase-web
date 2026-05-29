@@ -368,8 +368,10 @@ export function ServerCatalogTable({
                   ) : null}
                   <td data-label="Roles">
                     <BadgeList
-                      values={result.facets.roles.map((role) =>
-                        formatRoleFacet(role, dictionaries),
+                      values={uniqueValues(
+                        result.facets.roles.map((role) =>
+                          formatRoleFacet(role, dictionaries),
+                        ),
                       )}
                       variant="credit"
                     />
