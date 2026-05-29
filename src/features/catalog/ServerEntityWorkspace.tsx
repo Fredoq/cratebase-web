@@ -5,6 +5,7 @@ import {
   loadCatalogGraphContext,
   loadRelationDetail,
   searchCatalog,
+  type CatalogDictionaries,
   type CatalogGraphContext,
   type CatalogSearchResult,
   type SearchEntityType,
@@ -14,6 +15,7 @@ import { ServerCatalogTable } from './ServerCatalogControls'
 import { FilterSelect } from './FilterSelect'
 import type { CatalogLinkData } from './catalogLinks'
 import { uniqueValues } from './catalogGraph'
+import { formatRoleFacet, roleFacetValue } from './catalogDisplayLabels'
 import {
   emptyServerFilters,
   resultKey,
@@ -37,8 +39,11 @@ const emptyRelationCatalogData: CatalogLinkData = {
 
 type ServerEntityWorkspaceProps = {
   ariaLabel: string
+  dictionaries?: CatalogDictionaries
   entityType?: SearchEntityType
   locationSearch: string
+  onRemoveReleaseCover?: (releaseId: string) => Promise<void> | void
+  onUploadReleaseCover?: (releaseId: string, file: File) => Promise<void> | void
   placeholder: string
   queryParam: string
   routePath: AppRoutePath
@@ -49,8 +54,11 @@ type ServerEntityWorkspaceProps = {
 
 export function ServerEntityWorkspace({
   ariaLabel,
+  dictionaries,
   entityType,
   locationSearch,
+  onRemoveReleaseCover,
+  onUploadReleaseCover,
   placeholder,
   queryParam,
   routePath,
@@ -308,6 +316,7 @@ export function ServerEntityWorkspace({
         />
         <EntityFilterBar
           filters={filters}
+          dictionaries={dictionaries}
           results={results}
           total={total}
           visibleCount={results.length}
@@ -321,6 +330,9 @@ export function ServerEntityWorkspace({
           results={results}
           searchStatus={searchStatus}
           selectedResultId={selectedResult ? resultKey(selectedResult) : ''}
+          dictionaries={dictionaries}
+          showContext={false}
+          showEntityType={false}
           total={total}
           onSelectResult={handleSelectResult}
         />
@@ -340,7 +352,10 @@ export function ServerEntityWorkspace({
       ) : (
         <GraphDetailPanel
           context={graphContext}
+          dictionaries={dictionaries}
           graphStatus={graphStatus}
+          onRemoveReleaseCover={onRemoveReleaseCover}
+          onUploadReleaseCover={onUploadReleaseCover}
           result={selectedResult}
         />
       )}
@@ -407,6 +422,7 @@ function RelationRouteDetailPanel({
 
 function EntityFilterBar({
   filters,
+  dictionaries,
   results,
   total,
   visibleCount,
@@ -414,6 +430,7 @@ function EntityFilterBar({
   onFilterChange,
 }: {
   filters: ServerCatalogFilters
+  dictionaries?: CatalogDictionaries
   results: CatalogSearchResult[]
   total: number
   visibleCount: number
@@ -432,8 +449,9 @@ function EntityFilterBar({
   const statusOptions = uniqueValues(
     results.flatMap((result) => result.facets.statuses),
   )
-  const roleOptions = uniqueValues(
+  const roleOptions = uniqueRoleOptions(
     results.flatMap((result) => result.facets.roles),
+    dictionaries,
   )
   const tagOptions = uniqueValues(
     results.flatMap((result) => result.facets.tags),
@@ -470,7 +488,8 @@ function EntityFilterBar({
         <FilterSelect
           label="Credit or relation role"
           value={filters.role}
-          values={roleOptions}
+          values={[]}
+          options={roleOptions}
           onChange={(value) => updateFilter('role', value)}
         />
         <FilterSelect
@@ -482,6 +501,23 @@ function EntityFilterBar({
       </div>
     </div>
   )
+}
+
+function uniqueRoleOptions(
+  roles: string[],
+  dictionaries: CatalogDictionaries | undefined,
+) {
+  const options = new Map<string, { label: string; value: string }>()
+
+  for (const role of uniqueValues(roles)) {
+    const value = roleFacetValue(role, dictionaries)
+    options.set(value, {
+      label: formatRoleFacet(role, dictionaries),
+      value,
+    })
+  }
+
+  return [...options.values()]
 }
 
 function EntitySearchField({
