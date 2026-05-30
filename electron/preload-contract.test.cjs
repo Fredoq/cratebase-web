@@ -84,20 +84,14 @@ describe('desktop preload contract', () => {
       'cratebase:exports:download',
       'json',
     )
-    expect(invoke).toHaveBeenNthCalledWith(
-      3,
-      'cratebase:local-edits:inspect',
-      { path: '/music/track.flac' },
-    )
-    expect(invoke).toHaveBeenNthCalledWith(
-      4,
-      'cratebase:local-edits:preview',
-      { files: [] },
-    )
-    expect(invoke).toHaveBeenNthCalledWith(
-      5,
-      'cratebase:local-edits:apply',
-      { files: [] },
-    )
+    expect(invoke).toHaveBeenNthCalledWith(3, 'cratebase:local-edits:inspect', {
+      path: '/music/track.flac',
+    })
+    expect(invoke).toHaveBeenNthCalledWith(4, 'cratebase:local-edits:preview', {
+      files: [],
+    })
+    expect(invoke).toHaveBeenNthCalledWith(5, 'cratebase:local-edits:apply', {
+      files: [],
+    })
   })
 })

@@ -5,6 +5,7 @@
 Entry: `src/features/settings/SettingsWorkspace.tsx`
 
 Dependencies:
+
 - `src/features/settings/ServerSettingsWorkspace.tsx`
 - `src/features/settings/SettingsWorkspace.tsx`
   - `src/features/settings/settings.css`

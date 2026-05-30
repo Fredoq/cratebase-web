@@ -230,9 +230,7 @@ describe('App settings and navigation', () => {
         name: /producerproducer producer standard field/i,
       }),
     ).toBeVisible()
-    expect(
-      h.screen.getByLabelText('Tag mapping scope'),
-    ).toHaveTextContent(
+    expect(h.screen.getByLabelText('Tag mapping scope')).toHaveTextContent(
       'Maps Cratebase artist credit roles to embedded audio tag fields.',
     )
     await user.click(
@@ -250,9 +248,9 @@ describe('App settings and navigation', () => {
     expect(h.within(detailPanel).getByLabelText('Artist role')).toHaveValue(
       'producer',
     )
-    expect(h.within(detailPanel).getByLabelText('Standard tag field')).toHaveValue(
-      'producer',
-    )
+    expect(
+      h.within(detailPanel).getByLabelText('Standard tag field'),
+    ).toHaveValue('producer')
   })
 
   it('keeps collection-level dangerous settings actions unavailable', () => {

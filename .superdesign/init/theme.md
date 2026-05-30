@@ -1,6 +1,7 @@
 # Theme
 
 Theme tokens and layout styles live in:
+
 - `src/index.css`
 - `src/App.css`
 - `src/styles/app-shell.css`

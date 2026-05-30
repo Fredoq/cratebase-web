@@ -33,9 +33,7 @@ export function TagRoleMappingSettings({
   const [status, setStatus] = useState('Loading tag mappings')
   const roleLabelsByCode = useMemo(
     () =>
-      new Map(
-        dictionaries.creditRole.map((entry) => [entry.code, entry.name]),
-      ),
+      new Map(dictionaries.creditRole.map((entry) => [entry.code, entry.name])),
     [dictionaries],
   )
   const queryTerms = useMemo(
@@ -111,7 +109,10 @@ export function TagRoleMappingSettings({
     }
   }
 
-  async function saveMapping(mappingId: string, request: TagRoleMappingRequest) {
+  async function saveMapping(
+    mappingId: string,
+    request: TagRoleMappingRequest,
+  ) {
     try {
       await updateTagRoleMapping(mappingId, request)
       await refreshMappings(mappingId)
@@ -142,10 +143,7 @@ export function TagRoleMappingSettings({
           onQueryChange={setQuery}
         />
         <div className="settings-mode-row">
-          <ViewModeSwitch
-            mode="tagRoleMappings"
-            onModeChange={onModeChange}
-          />
+          <ViewModeSwitch mode="tagRoleMappings" onModeChange={onModeChange} />
         </div>
         <TagRoleMappingContextPanel
           count={filteredMappings.length}
@@ -354,14 +352,20 @@ function TagRoleMappingDetail({
   return (
     <aside className="panel detail-panel" aria-labelledby="tag-mapping-title">
       <div className="detail-header">
-        <p className="entity-type">{mapping.isBuiltin ? 'Built-in' : 'Custom'}</p>
+        <p className="entity-type">
+          {mapping.isBuiltin ? 'Built-in' : 'Custom'}
+        </p>
         <h2 id="tag-mapping-title">
           {roleName(
             mapping,
-            new Map(dictionaries.creditRole.map((entry) => [entry.code, entry.name])),
+            new Map(
+              dictionaries.creditRole.map((entry) => [entry.code, entry.name]),
+            ),
           )}
         </h2>
-        <p>{mapping.creditRoleCode} to {mapping.tagField}</p>
+        <p>
+          {mapping.creditRoleCode} to {mapping.tagField}
+        </p>
       </div>
       <section className="detail-section" aria-label="Tag mapping editor">
         <RoleSelect

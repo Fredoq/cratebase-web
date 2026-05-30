@@ -1,4 +1,8 @@
-import type { KnownLocalEditTags, LocalEditableFile, LocalEditTags } from './localFileEditModel'
+import type {
+  KnownLocalEditTags,
+  LocalEditableFile,
+  LocalEditTags,
+} from './localFileEditModel'
 
 export type LocalEditInspectResult = {
   path: string

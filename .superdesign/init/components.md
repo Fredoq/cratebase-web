@@ -3,6 +3,7 @@
 Cratebase currently uses custom React components and vanilla CSS rather than a third-party UI kit.
 
 Relevant shared primitives for this task:
+
 - `src/features/settings/settingsShared.tsx`: `SearchField`, `ViewModeSwitch`.
 - Common CSS classes: `.button`, `.panel`, `.catalog-table`, `.settings-control`, `.settings-check`, `.badge`.
 
