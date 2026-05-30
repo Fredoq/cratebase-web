@@ -83,7 +83,7 @@ export function LocalFileEditPanel({
     let isCancelled = false
     for (const file of files) {
       bridge
-        .inspect({ path: file.currentPath })
+        .inspect({ ownedItemId: file.ownedItemId, path: file.currentPath })
         .then((result) => {
           if (!isCancelled) {
             setInspections((current) => ({

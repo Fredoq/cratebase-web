@@ -9,7 +9,11 @@ export function useImportEntitySuggestions(
   query: string,
   entityType: Extract<SearchEntityType, 'artist' | 'label'>,
 ) {
-  const [suggestions, setSuggestions] = useState<EntitySuggestion[]>([])
+  const [suggestionState, setSuggestionState] = useState<{
+    entityType: Extract<SearchEntityType, 'artist' | 'label'>
+    query: string
+    suggestions: EntitySuggestion[]
+  }>({ entityType, query: '', suggestions: [] })
   const normalizedQuery = query.trim()
 
   useEffect(() => {
@@ -29,17 +33,23 @@ export function useImportEntitySuggestions(
             return
           }
 
-          setSuggestions(
-            response.items.map((item) => ({
+          setSuggestionState({
+            entityType,
+            query: normalizedQuery,
+            suggestions: response.items.map((item) => ({
               id: item.id,
               name: item.title,
               match: item.matchedFields[0] ?? 'search',
             })),
-          )
+          })
         })
         .catch(() => {
           if (isCurrent) {
-            setSuggestions([])
+            setSuggestionState({
+              entityType,
+              query: normalizedQuery,
+              suggestions: [],
+            })
           }
         })
     }, suggestionDelayMs)
@@ -50,5 +60,13 @@ export function useImportEntitySuggestions(
     }
   }, [entityType, normalizedQuery])
 
-  return normalizedQuery.length < minimumQueryLength ? [] : suggestions
+  if (
+    normalizedQuery.length < minimumQueryLength ||
+    suggestionState.entityType !== entityType ||
+    suggestionState.query !== normalizedQuery
+  ) {
+    return []
+  }
+
+  return suggestionState.suggestions
 }

@@ -27,6 +27,7 @@ type LocalEditTags = {
 }
 
 type LocalEditInspectRequest = {
+  ownedItemId: string
   path: string
 }
 

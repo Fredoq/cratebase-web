@@ -63,6 +63,37 @@ describe('import entity suggestions', () => {
       },
     ])
   })
+
+  it('clears stale suggestions while a new import query is debounced', async () => {
+    const user = h.userEvent.setup()
+    const onChange = vi.fn()
+    mockSearchByQuery({
+      Run: [{ id: 'artist-run-dmc', title: 'Run-DMC' }],
+      Pia: [{ id: 'artist-pi', title: 'Pia Fraus' }],
+    })
+
+    h.render(
+      <ImportArtistCreditsEditor
+        artists={[]}
+        creditRoleOptions={[]}
+        credits={[]}
+        isVariousArtists={false}
+        onChange={onChange}
+      />,
+    )
+
+    await user.type(h.screen.getByLabelText('Release artist'), 'Run')
+    expect(
+      await h.screen.findByRole('button', { name: 'Run-DMC' }),
+    ).toBeVisible()
+
+    await user.clear(h.screen.getByLabelText('Release artist'))
+    await user.type(h.screen.getByLabelText('Release artist'), 'Pia')
+
+    expect(
+      h.screen.queryByRole('button', { name: 'Run-DMC' }),
+    ).not.toBeInTheDocument()
+  })
 })
 
 function mockSearch(results: {
@@ -102,6 +133,47 @@ function mockSearch(results: {
           limit: 5,
           offset: 0,
           total: results[entityType].length,
+        }),
+      )
+    }),
+  )
+}
+
+function mockSearchByQuery(
+  results: Record<string, Array<{ id: string; title: string }>>,
+) {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn<Window['fetch']>((input) => {
+      const requestUrl =
+        typeof input === 'string'
+          ? input
+          : input instanceof Request
+            ? input.url
+            : ''
+      const url = new URL(requestUrl, window.location.origin)
+      const query = url.searchParams.get('query') ?? ''
+      const items = results[query] ?? []
+      return Promise.resolve(
+        h.jsonResponse({
+          items: items.map((item) => ({
+            facets: {
+              collectorSignals: [],
+              media: [],
+              roles: [],
+              statuses: [],
+              tags: [],
+            },
+            id: item.id,
+            matchedFields: ['name'],
+            rank: 1,
+            snippets: [item.title],
+            title: item.title,
+            type: 'artist',
+          })),
+          limit: 5,
+          offset: 0,
+          total: items.length,
         }),
       )
     }),

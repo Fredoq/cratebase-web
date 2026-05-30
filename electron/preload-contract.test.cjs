@@ -62,7 +62,10 @@ describe('desktop preload contract', () => {
       path: '/tmp/export.json',
     })
     await expect(
-      bridge.localEdits.inspect({ path: '/music/track.flac' }),
+      bridge.localEdits.inspect({
+        ownedItemId: 'owned-track',
+        path: '/music/track.flac',
+      }),
     ).resolves.toEqual({
       path: '/music/track.flac',
     })
@@ -85,6 +88,7 @@ describe('desktop preload contract', () => {
       'json',
     )
     expect(invoke).toHaveBeenNthCalledWith(3, 'cratebase:local-edits:inspect', {
+      ownedItemId: 'owned-track',
       path: '/music/track.flac',
     })
     expect(invoke).toHaveBeenNthCalledWith(4, 'cratebase:local-edits:preview', {
