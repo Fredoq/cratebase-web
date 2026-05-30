@@ -3,6 +3,11 @@ const fsp = require('node:fs/promises')
 const http = require('node:http')
 const path = require('node:path')
 const { resolveBackendBaseUrl } = require('./backend-config.cjs')
+const {
+  applyLocalEdits,
+  inspectLocalFile,
+  previewLocalEdits,
+} = require('./local-edits.cjs')
 const { scanFolder } = require('./scanner.cjs')
 
 const backendBaseUrl = resolveBackendBaseUrl()
@@ -94,6 +99,20 @@ ipcMain.handle('cratebase:exports:download', async (event, format) => {
   const content = await fetchExportContent(download, event.sender)
   await fsp.writeFile(result.filePath, content)
   return { cancelled: false, path: result.filePath }
+})
+
+ipcMain.handle('cratebase:local-edits:inspect', async (_event, request) => {
+  return await inspectLocalFile(request)
+})
+
+ipcMain.handle('cratebase:local-edits:preview', async (_event, request) => {
+  return await previewLocalEdits(request)
+})
+
+ipcMain.handle('cratebase:local-edits:apply', async (_event, request) => {
+  return await applyLocalEdits(request, {
+    logRoot: path.join(app.getPath('userData'), 'local-edit-operation-logs'),
+  })
 })
 
 function createWindow(appUrl) {
