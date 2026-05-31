@@ -8,6 +8,7 @@ import type {
 import type { ReleaseRecord } from '../../releases/releasesData'
 import type { RelationRecord } from '../../relations/relationsData'
 import type { TrackRecord } from '../../tracks/tracksData'
+import type { ExternalSourceReference } from './externalMetadataClient'
 
 export const pageSize = 100
 
@@ -337,6 +338,7 @@ export type ReleaseDto = {
   artistCredits?: ReleaseArtistCreditDto[]
   labels?: ReleaseLabelDto[]
   tracklist?: ReleaseTracklistItemDto[]
+  externalSources?: ExternalSourceReference[] | null
 }
 
 export type ReleaseCoverImageDto = {

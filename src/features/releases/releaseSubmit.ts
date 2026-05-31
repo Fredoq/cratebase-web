@@ -32,6 +32,7 @@ type BuildReleaseSubmissionInput = {
   draftTracks: DraftTrackRow[]
   effectiveArtistCredits: EditableArtistCredit[]
   effectiveLabels: EditableReleaseLabel[]
+  externalSources?: ReleaseRecord['externalSources']
   firstCopy?: OwnedCopy
   genres: string[]
   includeOwnedCopy: boolean
@@ -53,6 +54,7 @@ export function buildReleaseSubmission({
   draftTracks,
   effectiveArtistCredits,
   effectiveLabels,
+  externalSources,
   firstCopy,
   genres,
   includeOwnedCopy,
@@ -134,6 +136,7 @@ export function buildReleaseSubmission({
     tags: splitCommaList(tags),
     releaseNotes,
     ownedCopies,
+    externalSources,
   }
   const submittedTracks = draftTracks
     .filter(isDraftTrackIncluded)

@@ -354,6 +354,11 @@ export function useReleaseTrackDrafts({
     }
   }
 
+  function replaceDraftTracks(nextTracks: DraftTrackRow[]) {
+    setDraftTracks(nextTracks)
+    setSelectedDraftTrackId(nextTracks[0]?.id ?? null)
+  }
+
   function draftTrackArtistSummary(track: DraftTrackRow) {
     if (track.existingTrackId) {
       const linkedTrack = tracks.find(
@@ -409,6 +414,7 @@ export function useReleaseTrackDrafts({
     handleTrackDraftArtistChange,
     removeDraftTrack,
     removeTrackArtist,
+    replaceDraftTracks,
     selectExistingTrack,
     selectedCustomTrackCredits,
     selectedDraftTrack,

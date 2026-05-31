@@ -185,6 +185,7 @@ export function toReleaseRecord(
     coverImage: release.coverImage
       ? toReleaseCoverImage(release.coverImage)
       : undefined,
+    externalSources: release.externalSources ?? [],
     ownedCopies: [
       ...ownedItems
         .filter(

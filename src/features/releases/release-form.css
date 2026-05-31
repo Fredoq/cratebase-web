@@ -37,6 +37,143 @@
   gap: 8px;
 }
 
+.discogs-release-lookup {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #fbfcfa;
+  padding: 12px;
+}
+
+.discogs-search-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.discogs-search-form label {
+  min-width: 0;
+}
+
+.discogs-lookup-status {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.discogs-candidate-list,
+.discogs-review-panel {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.discogs-candidate {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  padding: 10px;
+}
+
+.discogs-candidate strong,
+.discogs-review-column h4 {
+  color: var(--color-heading);
+  font-size: 13px;
+}
+
+.discogs-candidate p {
+  margin: 2px 0 0;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.discogs-candidate-actions {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.discogs-candidate-actions .detail-link {
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.discogs-review-panel {
+  border-top: 1px solid var(--color-border);
+  padding-top: 10px;
+}
+
+.discogs-review-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.discogs-review-column {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  padding: 10px;
+}
+
+.discogs-review-column h4 {
+  margin: 0;
+}
+
+.discogs-review-column dl {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+}
+
+.discogs-review-column dl div {
+  display: grid;
+  gap: 2px;
+}
+
+.discogs-review-column dt {
+  color: var(--color-soft);
+  font-size: 10px;
+  font-weight: 780;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.discogs-review-column dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-heading);
+  font-size: 12px;
+}
+
+.discogs-apply-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  min-width: 0;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.discogs-apply-groups legend {
+  width: 100%;
+  color: var(--color-soft);
+  font-size: 11px;
+  font-weight: 780;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .button-compact {
   min-height: 30px;
   padding: 0 10px;
@@ -331,4 +468,52 @@
 .release-track-title-field,
 .release-track-version-field {
   min-width: 0;
+}
+
+@media (max-width: 860px) {
+  .release-core-grid,
+  .release-owned-copy-grid,
+  .release-artist-composer,
+  .release-label-composer,
+  .release-artist-row,
+  .release-label-row {
+    grid-template-columns: 1fr;
+  }
+
+  .release-row-checkbox {
+    padding-top: 0;
+  }
+
+  .discogs-search-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .discogs-search-form > .button {
+    justify-self: start;
+  }
+
+  .discogs-candidate,
+  .discogs-review-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .discogs-candidate-actions {
+    justify-items: start;
+  }
+
+  .discogs-candidate-actions .detail-link {
+    text-align: left;
+  }
+}
+
+@media (max-width: 560px) {
+  .discogs-search-form {
+    grid-template-columns: 1fr;
+  }
+
+  .release-form-section-header,
+  .release-section-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
 }

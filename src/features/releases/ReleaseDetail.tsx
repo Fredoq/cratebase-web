@@ -30,6 +30,7 @@ type ReleaseDetailProps = {
   onEdit?: () => void
   onEditLocalFiles?: (tracks: TrackRecord[]) => void
   onRemoveCover?: (releaseId: string) => Promise<void> | void
+  onUpdateViaDiscogs?: () => void
   onUploadCover?: (releaseId: string, file: File) => Promise<void> | void
   playlists: PlaylistRecord[]
   release: ReleaseRecord
@@ -55,6 +56,7 @@ export function ReleaseDetail({
   onEdit,
   onEditLocalFiles,
   onRemoveCover,
+  onUpdateViaDiscogs,
   onUploadCover,
   playlists,
   release,
@@ -105,7 +107,9 @@ export function ReleaseDetail({
         </div>
         <h2 id="release-detail-title">{release.title}</h2>
         <p>{release.artist}</p>
-        {onEdit || (onEditLocalFiles && localTracks.length > 0) ? (
+        {onEdit ||
+        onUpdateViaDiscogs ||
+        (onEditLocalFiles && localTracks.length > 0) ? (
           <div className="detail-actions">
             {onEdit ? (
               <button
@@ -114,6 +118,15 @@ export function ReleaseDetail({
                 onClick={onEdit}
               >
                 Edit record
+              </button>
+            ) : null}
+            {onUpdateViaDiscogs ? (
+              <button
+                className="button button-secondary"
+                type="button"
+                onClick={onUpdateViaDiscogs}
+              >
+                Update via Discogs
               </button>
             ) : null}
             {onEditLocalFiles && localTracks.length > 0 ? (

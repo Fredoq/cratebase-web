@@ -8,6 +8,7 @@ export type ReleaseEntryFormProps = {
   artists: ArtistRecord[]
   dictionaries: CatalogDictionaries
   initialRelease?: ReleaseRecord
+  initialShowDiscogsLookup?: boolean
   releases: ReleaseRecord[]
   tracks: TrackRecord[]
   onCancel: () => void
