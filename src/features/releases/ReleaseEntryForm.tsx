@@ -21,6 +21,7 @@ import {
   DiscogsReleaseLookupPanel,
   type DiscogsApplyGroups,
 } from './DiscogsReleaseLookupPanel'
+import { discogsDraftTrackRows } from './discogsReleaseTrackRows'
 import { ReleaseArtistCreditsSection } from './ReleaseArtistCreditsSection'
 import { ReleaseClassificationSection } from './ReleaseClassificationSection'
 import { ReleaseCoreSection } from './ReleaseCoreSection'
@@ -59,6 +60,10 @@ export function ReleaseEntryForm({
           artistId: credit.artistId ?? '',
           artist: credit.artistId ? '' : credit.artist,
           role: credit.role,
+          roles:
+            credit.roles && credit.roles.length > 0
+              ? credit.roles
+              : [credit.role],
         }))
       }
 
@@ -69,6 +74,7 @@ export function ReleaseEntryForm({
             artistId: initialRelease.artistId ?? '',
             artist: initialRelease.artistId ? '' : initialRelease.artist,
             role: 'Main artist',
+            roles: ['Main artist'],
           },
         ]
       }
@@ -79,6 +85,9 @@ export function ReleaseEntryForm({
   const [draftArtist, setDraftArtist] = useState('')
   const [draftArtistId, setDraftArtistId] = useState('')
   const [year, setYear] = useState(initialRelease?.year ?? '')
+  const [releaseDate, setReleaseDate] = useState(
+    initialRelease?.releaseDate ?? '',
+  )
   const [notOnLabel, setNotOnLabel] = useState(
     Boolean(initialRelease?.notOnLabel),
   )
@@ -117,6 +126,13 @@ export function ReleaseEntryForm({
   const [type, setType] = useState<ReleaseType>(
     initialRelease?.type ?? releaseTypeOptions[0] ?? 'Unknown',
   )
+  const effectiveReleaseTypeOptions = releaseTypeOptions.includes(type)
+    ? releaseTypeOptions
+    : [...releaseTypeOptions, type]
+  const effectiveGenreOptions = [
+    ...genreOptions,
+    ...genres.filter((genre) => !genreOptions.includes(genre)),
+  ]
   const [includeOwnedCopy, setIncludeOwnedCopy] = useState(Boolean(firstCopy))
   const [medium, setMedium] = useState(firstCopy?.medium ?? '')
   const [status, setStatus] = useState<OwnedCopy['status'] | ''>(
@@ -146,9 +162,7 @@ export function ReleaseEntryForm({
     : labels
   const releaseMainArtistCredits = effectiveArtistCredits
     .map((credit) => releaseArtistCreditFromEditableCredit(credit, artists))
-    .filter(
-      (credit) => credit.role === 'Main artist' && credit.artist.length > 0,
-    )
+    .filter((credit) => hasMainArtistRole(credit) && credit.artist.length > 0)
   const {
     addDraftTrack,
     addTrackArtist,
@@ -198,8 +212,7 @@ export function ReleaseEntryForm({
     draftTracks.some(isDraftTrackIncluded)
   const hasUnsetReleaseArtistRole = artistCredits.some(
     (credit) =>
-      artistCreditName(credit, artists).length > 0 &&
-      credit.role.trim().length === 0,
+      artistCreditName(credit, artists).length > 0 && credit.roles.length === 0,
   )
   const hasUnsetTrackArtistRole = draftTracks.some(
     (track) =>
@@ -208,7 +221,7 @@ export function ReleaseEntryForm({
       track.artistCredits.some(
         (credit) =>
           artistCreditName(credit, artists).length > 0 &&
-          credit.role.trim().length === 0,
+          credit.roles.length === 0,
       ),
   )
   const hasInvalidVariousArtistTrack = draftTracks.some(
@@ -283,6 +296,7 @@ export function ReleaseEntryForm({
         artistId: draftArtistId,
         artist: draftArtistId ? '' : artistName,
         role: '',
+        roles: [],
       },
     ])
     setDraftArtist('')
@@ -334,6 +348,7 @@ export function ReleaseEntryForm({
       medium,
       notOnLabel,
       releaseNotes,
+      releaseDate,
       status,
       tags,
       title,
@@ -353,16 +368,18 @@ export function ReleaseEntryForm({
 
     if (groups.core) {
       setTitle(draft.title)
+      if (draft.type) {
+        setType(releaseTypeValueFromCode(draft.type))
+      }
       setYear(draft.year?.toString() ?? '')
+      if (draft.releaseDate) {
+        setReleaseDate(draft.releaseDate)
+      }
     }
 
     if (groups.artists) {
       setIsVariousArtists(false)
-      setArtistCredits(
-        draft.artistCredits.map((credit, index) =>
-          editableCreditFromDiscogsCredit(credit.name, credit.role, index),
-        ),
-      )
+      setArtistCredits(groupDiscogsCredits(draft.artistCredits, 'release'))
       setDraftArtist('')
       setDraftArtistId('')
     }
@@ -382,9 +399,19 @@ export function ReleaseEntryForm({
       )
     }
 
+    if (groups.classification) {
+      setGenres(draft.genres ?? [])
+    }
+
     if (groups.tracklist) {
+      const discogsTracks = discogsDraftTrackRows(draft.tracklist)
+
+      if (discogsTracklistNeedsVariousArtists(discogsTracks, draft)) {
+        setIsVariousArtists(true)
+      }
+
       replaceDraftTracks(
-        draft.tracklist.map(
+        discogsTracks.map(
           (track, index): DraftTrackRow => ({
             id: createManualRecordId(
               'draft-track',
@@ -397,13 +424,9 @@ export function ReleaseEntryForm({
               ? durationSecondsToParts(track.durationSeconds)
               : { ...emptyDurationParts },
             inheritReleaseArtistCredits: track.artistCredits.length === 0,
-            artistCredits: track.artistCredits.map((credit, creditIndex) =>
-              editableCreditFromDiscogsCredit(
-                credit.name,
-                credit.role,
-                creditIndex,
-                `track-${index + 1}`,
-              ),
+            artistCredits: groupDiscogsCredits(
+              track.artistCredits,
+              `track-${index + 1}`,
             ),
             draftArtist: '',
             draftArtistId: '',
@@ -413,14 +436,51 @@ export function ReleaseEntryForm({
       )
     }
 
-    if (groups.externalSource) {
-      setExternalSources(
-        draft.externalSources.map((source) => ({
-          ...source,
-          appliedAt: new Date().toISOString(),
-        })),
+    setExternalSources(
+      draft.externalSources.map((source) => ({
+        ...source,
+        appliedAt: new Date().toISOString(),
+      })),
+    )
+  }
+
+  function groupDiscogsCredits(
+    credits: ReadonlyArray<{ name: string; role: string }>,
+    prefix: string,
+  ): EditableArtistCredit[] {
+    const grouped = new Map<string, EditableArtistCredit>()
+
+    credits.forEach((credit, index) => {
+      const editableCredit = editableCreditFromDiscogsCredit(
+        credit.name,
+        credit.role,
+        index,
+        prefix,
       )
-    }
+      const key =
+        editableCredit.artistId ||
+        editableCredit.artist.trim().toLowerCase() ||
+        editableCredit.id
+      const existing = grouped.get(key)
+
+      if (existing) {
+        existing.roles = [
+          ...new Set([...existing.roles, ...editableCredit.roles]),
+        ]
+        existing.role = existing.roles[0] ?? ''
+      } else {
+        grouped.set(key, editableCredit)
+      }
+    })
+
+    return [...grouped.values()]
+  }
+
+  function releaseTypeValueFromCode(code: string) {
+    return (
+      dictionaries?.releaseType.find((entry) => entry.code === code)?.name ??
+      code
+    )
   }
 
   function editableCreditFromDiscogsCredit(
@@ -434,6 +494,8 @@ export function ReleaseEntryForm({
       (artist) => artist.name.toLowerCase() === trimmedName.toLowerCase(),
     )
 
+    const roles = roleLabelsFromCode(role)
+
     return {
       id: createManualRecordId(
         `${prefix}-artist-credit`,
@@ -441,14 +503,25 @@ export function ReleaseEntryForm({
       ),
       artistId: existingArtist?.id ?? '',
       artist: existingArtist ? '' : trimmedName,
-      role: creditRoleLabelFromCode(role),
+      role: roles[0] ?? '',
+      roles,
     }
   }
 
-  function creditRoleLabelFromCode(role: string) {
-    return (
-      dictionaries.creditRole.find((entry) => entry.code === role)?.name ?? role
-    )
+  function roleLabelsFromCode(role: string) {
+    return [
+      ...new Set(
+        role
+          .split(',')
+          .map((part) => part.trim())
+          .filter(Boolean)
+          .map(
+            (part) =>
+              dictionaries.creditRole.find((entry) => entry.code === part)
+                ?.name ?? part,
+          ),
+      ),
+    ]
   }
 
   return (
@@ -462,7 +535,9 @@ export function ReleaseEntryForm({
     >
       <ReleaseCoreSection
         duplicateRelease={duplicateRelease}
-        releaseTypeOptions={releaseTypeOptions}
+        releaseDate={releaseDate}
+        releaseTypeOptions={effectiveReleaseTypeOptions}
+        setReleaseDate={setReleaseDate}
         setTitle={setTitle}
         setType={setType}
         setYear={setYear}
@@ -474,15 +549,18 @@ export function ReleaseEntryForm({
         current={{
           artists: releaseArtist,
           externalSourceCount: externalSources?.length ?? 0,
+          genres: genres.join(', '),
           labels: effectiveLabels
             .map((label) =>
               [label.label, label.catalogNumber].filter(Boolean).join(' '),
             )
             .join(', '),
+          releaseDate,
           title,
           trackCount: draftTracks.filter(isDraftTrackIncluded).length,
           year,
         }}
+        dictionaries={dictionaries}
         isOpen={isDiscogsLookupOpen}
         mode={initialRelease ? 'update' : 'create'}
         searchSeed={{
@@ -522,7 +600,7 @@ export function ReleaseEntryForm({
         setNotOnLabel={setNotOnLabel}
       />
       <ReleaseClassificationSection
-        genreOptions={genreOptions}
+        genreOptions={effectiveGenreOptions}
         genres={genres}
         setGenres={setGenres}
         setTags={setTags}
@@ -567,4 +645,61 @@ export function ReleaseEntryForm({
       />
     </ManualEntryPanel>
   )
+}
+
+function discogsTracklistNeedsVariousArtists(
+  tracklist: ExternalMetadataReleaseDetailDto['draft']['tracklist'],
+  draft: ExternalMetadataReleaseDetailDto['draft'],
+) {
+  const releaseMainArtists = normalizedSet(
+    draft.artistCredits
+      .filter((credit) => normalizeText(credit.role) === 'mainartist')
+      .map((credit) => credit.name),
+  )
+  const releaseArtists =
+    releaseMainArtists.size > 0
+      ? releaseMainArtists
+      : normalizedSet(draft.artistCredits.map((credit) => credit.name))
+
+  return tracklist.some((track) => {
+    const trackMainArtists = normalizedSet(
+      track.artistCredits
+        .filter((credit) => normalizeText(credit.role) === 'mainartist')
+        .map((credit) => credit.name),
+    )
+
+    if (trackMainArtists.size === 0) {
+      return false
+    }
+
+    return !setsEqual(releaseArtists, trackMainArtists)
+  })
+}
+
+function normalizedSet(values: string[]) {
+  return new Set(values.map(normalizeText).filter(Boolean))
+}
+
+function normalizeText(value: string) {
+  return value.trim().toLowerCase()
+}
+
+function setsEqual(left: Set<string>, right: Set<string>) {
+  if (left.size !== right.size) {
+    return false
+  }
+
+  for (const value of left) {
+    if (!right.has(value)) {
+      return false
+    }
+  }
+
+  return true
+}
+
+function hasMainArtistRole(credit: { role: string; roles?: string[] }) {
+  return (
+    credit.roles && credit.roles.length > 0 ? credit.roles : [credit.role]
+  ).includes('Main artist')
 }

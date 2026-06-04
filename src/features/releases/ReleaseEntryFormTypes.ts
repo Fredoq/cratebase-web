@@ -34,6 +34,7 @@ export type EditableArtistCredit = {
   artistId: string
   artist: string
   role: string
+  roles: string[]
 }
 
 export type EditableReleaseLabel = {

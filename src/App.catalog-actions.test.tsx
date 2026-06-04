@@ -154,8 +154,22 @@ describe('App catalog actions', () => {
       if (url === '/api/catalog-graph/label/label-1') {
         return h.graphResponseForLabel()
       }
+      if (url.startsWith('/api/labels?')) {
+        return h.jsonResponse({
+          items: [{ id: 'label-1', name: 'Factory Records' }],
+          limit: 100,
+          offset: 0,
+          total: 1,
+        })
+      }
+      if (url.startsWith('/api/settings/dictionaries?')) {
+        return h.defaultDictionaryListResponse()
+      }
+      if (url.startsWith('/api/rating-criteria?')) {
+        return h.defaultRatingCriteriaListResponse()
+      }
 
-      return h.emptySearchResponse()
+      return h.emptyCatalogListResponse()
     })
     h.vi.stubGlobal('fetch', fetchMock)
     const user = h.userEvent.setup()
@@ -179,11 +193,14 @@ describe('App catalog actions', () => {
       await h.screen.findByRole('complementary', { name: 'Factory Records' }),
     ).toBeInTheDocument()
     expect(
+      h.screen.getByRole('button', { name: 'Edit record' }),
+    ).toBeInTheDocument()
+    expect(
       fetchMock.mock.calls.some(
         ([input]) =>
           typeof input === 'string' && input.startsWith('/api/labels?'),
       ),
-    ).toBe(false)
+    ).toBe(true)
   })
 
   it('keeps label owned coverage tied to release ids instead of shared titles', async () => {

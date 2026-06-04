@@ -591,7 +591,15 @@ export function AuthenticatedApp({
   )
 }
 
-const fullCatalogRoutes = new Set<AppRoutePath>()
+const fullCatalogRoutes = new Set<AppRoutePath>([
+  '/artists',
+  '/labels',
+  '/owned-items',
+  '/playlists',
+  '/relations',
+  '/releases',
+  '/tracks',
+])
 
 function routeRequiresFullCatalog(path: AppRoutePath) {
   return fullCatalogRoutes.has(path)

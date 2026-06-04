@@ -41,6 +41,7 @@ type BuildReleaseSubmissionInput = {
   medium: string
   notOnLabel: boolean
   releaseNotes: string
+  releaseDate: string
   status: OwnedCopy['status'] | ''
   tags: string
   title: string
@@ -63,6 +64,7 @@ export function buildReleaseSubmission({
   medium,
   notOnLabel,
   releaseNotes,
+  releaseDate,
   status,
   tags,
   title,
@@ -90,16 +92,14 @@ export function buildReleaseSubmission({
   const displayArtist = isVariousArtists
     ? 'Various Artists'
     : resolvedArtistCredits
-        .filter((credit) => credit.role === 'Main artist')
+        .filter(hasMainArtistRole)
         .map((credit) => credit.artist)
         .join(', ') ||
       resolvedArtistCredits.map((credit) => credit.artist).join(', ')
   const displayLabel = notOnLabel
     ? 'Not On Label'
     : resolvedLabels.map(releaseLabelDisplay).join(', ') || 'Unknown label'
-  const firstMainArtist = resolvedArtistCredits.find(
-    (credit) => credit.role === 'Main artist',
-  )
+  const firstMainArtist = resolvedArtistCredits.find(hasMainArtistRole)
   const copyMedium = medium.trim()
   const copyStatus = status
   const releaseId =
@@ -128,6 +128,7 @@ export function buildReleaseSubmission({
     artistCredits: resolvedArtistCredits,
     type,
     year: textOrFallback(year, 'Unknown year'),
+    releaseDate: releaseDate.trim() || undefined,
     label: displayLabel,
     labels: resolvedLabels,
     isVariousArtists,
@@ -183,20 +184,20 @@ export function buildReleaseSubmission({
           const existingArtist = artists.find(
             (artist) => artist.id === credit.artistId,
           )
+          const roles = credit.roles.length > 0 ? credit.roles : [credit.role]
 
           return {
             artistId: existingArtist?.id,
             artist: existingArtist?.name ?? credit.artist.trim(),
-            role: toCreditRole(credit.role),
+            role: toCreditRole(roles[0]),
+            roles: roles.map(toCreditRole),
           }
         })
         .filter((credit) => credit.artist.length > 0)
       const effectiveTrackCredits =
         !track.inheritReleaseArtistCredits && resolvedTrackCredits.length > 0
           ? resolvedTrackCredits
-          : resolvedArtistCredits.filter(
-              (credit) => credit.role === 'Main artist',
-            )
+          : resolvedArtistCredits.filter(hasMainArtistRole)
       const trackArtist =
         effectiveTrackCredits.map((credit) => credit.artist).join(', ') ||
         displayArtist
@@ -226,6 +227,7 @@ export function buildReleaseSubmission({
         credits: effectiveTrackCredits.map((credit) => ({
           artistId: credit.artistId,
           role: credit.role,
+          roles: credit.roles,
           artist: credit.artist,
           scope: '',
         })),
@@ -265,4 +267,10 @@ export function buildReleaseSubmission({
     })
 
   return { release, submittedTracks }
+}
+
+function hasMainArtistRole(credit: ReleaseArtistCredit) {
+  return (
+    credit.roles && credit.roles.length > 0 ? credit.roles : [credit.role]
+  ).includes('Main artist')
 }

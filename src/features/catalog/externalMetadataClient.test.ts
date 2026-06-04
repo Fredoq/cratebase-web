@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
+  getDiscogsArtist,
   getDiscogsRelease,
+  getDiscogsTrack,
+  searchDiscogsArtists,
   searchDiscogsReleases,
+  searchDiscogsTracks,
 } from './api/externalMetadataClient'
 import { CatalogApiError } from './api/httpClient'
 import * as h from './catalogApiTestHarness'
@@ -87,7 +91,10 @@ describe('external metadata API client', () => {
           credits: [{ name: 'New Order', role: 'Written-By' }],
           draft: {
             title: 'Blue Monday',
+            type: 'single',
+            genres: ['Electronic', 'Leftfield'],
             year: 1983,
+            releaseDate: '1983-03-07',
             artistCredits: [{ name: 'New Order', role: 'mainArtist' }],
             labels: [
               {
@@ -132,6 +139,9 @@ describe('external metadata API client', () => {
       position: 1,
       durationSeconds: 449,
     })
+    expect(detail.draft.releaseDate).toBe('1983-03-07')
+    expect(detail.draft.type).toBe('single')
+    expect(detail.draft.genres).toEqual(['Electronic', 'Leftfield'])
     expect(detail.draft.externalSources[0]).toMatchObject({
       providerName: 'discogs',
       resourceType: 'release',
@@ -167,6 +177,149 @@ describe('external metadata API client', () => {
       code: 'external_metadata.rate_limited',
       retryAfter: '60',
     } satisfies Partial<CatalogApiError>)
+  })
+
+  it('searches Discogs artists with trimmed query params and parses detail drafts', async () => {
+    const fetchMock = vi.fn<Window['fetch']>()
+    fetchMock
+      .mockResolvedValueOnce(
+        h.jsonResponse({
+          items: [
+            {
+              source: source('artist', '5876'),
+              name: 'Arthur Baker',
+              profile: 'Producer and remixer.',
+              nameVariations: ['A. Baker'],
+            },
+          ],
+          limit: 25,
+          total: 1,
+        }),
+      )
+      .mockResolvedValueOnce(
+        h.jsonResponse({
+          source: source('artist', '5876'),
+          name: 'Arthur Baker',
+          profile: 'Producer and remixer.',
+          aliases: ['Arthur Baker III'],
+          members: ['Rockers Revenge'],
+          nameVariations: ['A. Baker'],
+          draft: {
+            name: 'Arthur Baker',
+            externalSources: [
+              {
+                providerName: 'discogs',
+                resourceType: 'artist',
+                externalId: '5876',
+                sourceUrl: 'https://www.discogs.com/artist/5876',
+              },
+            ],
+          },
+        }),
+      )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await searchDiscogsArtists({
+      query: ' Arthur Baker ',
+      limit: 25,
+    })
+    const detail = await getDiscogsArtist('5876')
+
+    const searchUrl = requestUrl(fetchMock.mock.calls[0][0])
+    expect(searchUrl.pathname).toBe('/api/external-metadata/discogs/artists')
+    expect(searchUrl.searchParams.get('query')).toBe('Arthur Baker')
+    expect(searchUrl.searchParams.get('limit')).toBe('25')
+    expect(result.items[0]).toMatchObject({
+      name: 'Arthur Baker',
+      source: { attribution: 'Data provided by Discogs.' },
+    })
+    expect(fetchMock.mock.calls[1][0]).toBe(
+      '/api/external-metadata/discogs/artists/5876',
+    )
+    expect(detail.draft.externalSources[0]).toMatchObject({
+      providerName: 'discogs',
+      resourceType: 'artist',
+      externalId: '5876',
+    })
+  })
+
+  it('searches Discogs tracks with release context and parses selected track detail', async () => {
+    const fetchMock = vi.fn<Window['fetch']>()
+    fetchMock
+      .mockResolvedValueOnce(
+        h.jsonResponse({
+          items: [
+            {
+              source: source('track', 'track-249504'),
+              title: 'Blue Monday',
+              position: 'A',
+              durationSeconds: 449,
+              artists: ['New Order'],
+              release: {
+                source: source('release', '249504'),
+                title: 'Blue Monday',
+                year: 1983,
+                artists: ['New Order'],
+              },
+            },
+          ],
+          limit: 25,
+          total: 1,
+        }),
+      )
+      .mockResolvedValueOnce(
+        h.jsonResponse({
+          source: source('track', 'track-249504'),
+          title: 'Blue Monday',
+          position: 'A',
+          durationSeconds: 449,
+          artists: ['New Order'],
+          credits: [{ name: 'Remixer Name', role: 'Remix' }],
+          release: {
+            source: source('release', '249504'),
+            title: 'Blue Monday',
+            year: 1983,
+            artists: ['New Order'],
+          },
+          draft: {
+            title: 'Blue Monday',
+            durationSeconds: 449,
+            artistCredits: [{ name: 'New Order', role: 'mainArtist' }],
+            externalSources: [
+              {
+                providerName: 'discogs',
+                resourceType: 'track',
+                externalId: 'track-249504',
+                sourceUrl: 'https://www.discogs.com/release/249504',
+              },
+            ],
+          },
+        }),
+      )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await searchDiscogsTracks({
+      title: ' Blue Monday ',
+      artist: ' New Order ',
+      releaseTitle: ' Blue Monday ',
+      year: ' 1983 ',
+      barcode: ' 5016839200371 ',
+      catalogNumber: ' FAC 73 ',
+      limit: 25,
+    })
+    const detail = await getDiscogsTrack('track-249504')
+
+    const searchUrl = requestUrl(fetchMock.mock.calls[0][0])
+    expect(searchUrl.pathname).toBe('/api/external-metadata/discogs/tracks')
+    expect(searchUrl.searchParams.get('title')).toBe('Blue Monday')
+    expect(searchUrl.searchParams.get('artist')).toBe('New Order')
+    expect(searchUrl.searchParams.get('releaseTitle')).toBe('Blue Monday')
+    expect(searchUrl.searchParams.get('catalogNumber')).toBe('FAC 73')
+    expect(result.items[0].release.title).toBe('Blue Monday')
+    expect(fetchMock.mock.calls[1][0]).toBe(
+      '/api/external-metadata/discogs/tracks/track-249504',
+    )
+    expect(detail.draft.externalSources[0].resourceType).toBe('track')
   })
 })
 

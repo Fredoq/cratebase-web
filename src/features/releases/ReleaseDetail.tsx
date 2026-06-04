@@ -175,7 +175,14 @@ export function ReleaseDetail({
             <article
               key={`${credit.artistId ?? credit.artist}-${credit.role}-${index}`}
             >
-              <span className="badge badge-credit">{credit.role}</span>
+              {(credit.roles && credit.roles.length > 0
+                ? credit.roles
+                : [credit.role]
+              ).map((role) => (
+                <span className="badge badge-credit" key={role}>
+                  {role}
+                </span>
+              ))}
               {credit.artistId ? (
                 <a
                   className="detail-link"
@@ -485,6 +492,7 @@ function releaseArtistCredits(release: ReleaseRecord): ReleaseArtistCredit[] {
       artistId: release.artistId,
       artist: release.artist,
       role: 'Main artist',
+      roles: ['Main artist'],
     },
   ]
 }

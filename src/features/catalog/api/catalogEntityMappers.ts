@@ -122,6 +122,7 @@ export function toArtistRecord(
     tags: [],
     summary: '',
     ratings: targetRatings(ratingsByTarget, 'artist', artist.id),
+    externalSources: artist.externalSources ?? [],
   }
 }
 
@@ -147,6 +148,10 @@ export function toReleaseRecord(
             artistsById.get(credit.contributorArtistId)?.name ??
             credit.contributorName,
           role: creditRoleLabel(credit.role, dictionaries),
+          roles: (credit.roles && credit.roles.length > 0
+            ? credit.roles
+            : [credit.role]
+          ).map((role) => creditRoleLabel(role, dictionaries)),
         }))
   const mainCredits = releaseCredits.filter((credit) =>
     isMainArtistRole(credit.role, dictionaries),
@@ -416,6 +421,7 @@ export function toTrackRecord(
       checksum: 'Not recorded',
     },
     ratings: targetRatings(ratingsByTarget, 'track', track.id),
+    externalSources: track.externalSources ?? [],
   }
 }
 

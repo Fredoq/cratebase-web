@@ -19,6 +19,7 @@ export type ReleaseArtistCredit = {
   artistId?: string
   artist: string
   role: CreditRole
+  roles?: CreditRole[]
 }
 
 export type ReleaseLabel = {

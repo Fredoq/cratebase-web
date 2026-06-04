@@ -316,6 +316,7 @@ export type ArtistDto = {
   id: string
   type: string
   name: string
+  externalSources?: ExternalSourceReference[] | null
 }
 
 export type LabelDto = {
@@ -353,6 +354,7 @@ export type ReleaseArtistCreditDto = {
   artistId: string
   artistName: string
   role: string
+  roles?: string[]
 }
 
 export type ReleaseLabelDto = {
@@ -377,6 +379,7 @@ export type TrackDto = {
   durationSeconds?: number | null
   genres: string[]
   tags: string[]
+  externalSources?: ExternalSourceReference[] | null
   credits?: TrackCreditDto[]
   releaseAppearances?: TrackReleaseAppearanceDto[]
 }
@@ -385,6 +388,7 @@ export type TrackCreditDto = {
   artistId: string
   artistName: string
   role: string
+  roles?: string[]
 }
 
 export type TrackReleaseAppearanceDto = {
@@ -449,6 +453,7 @@ export type CreditDto = {
   targetType: CatalogTargetType
   targetId: string
   role: string
+  roles?: string[]
   targetTitle?: string | null
 }
 
