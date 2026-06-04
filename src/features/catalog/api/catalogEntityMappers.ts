@@ -9,6 +9,7 @@ import type { RelationRecord } from '../../relations/relationsData'
 import type { TrackRecord } from '../../tracks/tracksData'
 import {
   conditionLabel,
+  creditRolesFromDto,
   creditRoleLabel,
   formatDuration,
   isDigitalFileMedium,
@@ -148,10 +149,7 @@ export function toReleaseRecord(
             artistsById.get(credit.contributorArtistId)?.name ??
             credit.contributorName,
           role: creditRoleLabel(credit.role, dictionaries),
-          roles: (credit.roles && credit.roles.length > 0
-            ? credit.roles
-            : [credit.role]
-          ).map((role) => creditRoleLabel(role, dictionaries)),
+          roles: creditRolesFromDto(credit, dictionaries),
         }))
   const mainCredits = releaseCredits.filter((credit) =>
     isMainArtistRole(credit.role, dictionaries),

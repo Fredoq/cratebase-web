@@ -32,6 +32,7 @@ import {
   trackReleaseAppearances,
   trackReleaseDisplay,
 } from './trackDisplayHelpers'
+import { groupDiscogsTrackCredits } from './discogsTrackApply'
 import type { TrackRecord } from './tracksData'
 
 export type TrackEntryFormProps = {
@@ -254,7 +255,13 @@ export function TrackEntryForm({
     }
 
     if (groups.credits) {
-      setCredits(groupDiscogsCredits(detail.draft.artistCredits))
+      setCredits(
+        groupDiscogsTrackCredits(
+          detail.draft.artistCredits,
+          artists,
+          dictionaries,
+        ),
+      )
     }
 
     setExternalSources(
@@ -263,77 +270,6 @@ export function TrackEntryForm({
         appliedAt: new Date().toISOString(),
       })),
     )
-  }
-
-  function groupDiscogsCredits(
-    artistCredits: ReadonlyArray<{ name: string; role: string }>,
-  ) {
-    const grouped = new Map<
-      string,
-      ReturnType<typeof editableCreditFromDiscogsCredit>
-    >()
-
-    artistCredits.forEach((credit, index) => {
-      const editableCredit = editableCreditFromDiscogsCredit(
-        credit.name,
-        credit.role,
-        index,
-      )
-      const key =
-        editableCredit.artistId ||
-        editableCredit.artist.trim().toLowerCase() ||
-        editableCredit.id
-      const existing = grouped.get(key)
-
-      if (existing) {
-        existing.roles = [
-          ...new Set([...existing.roles, ...editableCredit.roles]),
-        ]
-        existing.role = existing.roles[0] ?? ''
-      } else {
-        grouped.set(key, editableCredit)
-      }
-    })
-
-    return [...grouped.values()]
-  }
-
-  function editableCreditFromDiscogsCredit(
-    artistName: string,
-    role: string,
-    index: number,
-  ) {
-    const normalizedArtistName = artistName.trim()
-    const existingArtist = artists.find(
-      (record) =>
-        record.name.toLowerCase() === normalizedArtistName.toLowerCase(),
-    )
-
-    const roles = roleLabelsFromCode(role)
-
-    return {
-      id: createManualRecordId(
-        'track-credit',
-        `${normalizedArtistName}-${role}-${index}`,
-      ),
-      artistId: existingArtist?.id,
-      artist: existingArtist?.name ?? normalizedArtistName,
-      role: roles[0] ?? '',
-      roles,
-      scope: 'Suggested by Discogs track detail.',
-    }
-  }
-
-  function roleLabelsFromCode(role: string) {
-    return [
-      ...new Set(
-        role
-          .split(',')
-          .map((part) => part.trim())
-          .filter(Boolean)
-          .map((part) => toCreditRole(part)),
-      ),
-    ]
   }
 
   return (
@@ -500,8 +436,11 @@ export function TrackEntryForm({
                       {credit.artist}
                     </span>
                     <span className="release-artist-chip-roles">
-                      {credit.roles.map((role) => (
-                        <span className="release-artist-role-pill" key={role}>
+                      {credit.roles.map((role, index) => (
+                        <span
+                          className="release-artist-role-pill"
+                          key={`${credit.id}-${role}-${index}`}
+                        >
                           <span>{role}</span>
                           <button
                             type="button"

@@ -353,7 +353,8 @@ export type ReleaseCoverImageDto = {
 export type ReleaseArtistCreditDto = {
   artistId: string
   artistName: string
-  role: string
+  primaryRole?: string
+  role?: string
   roles?: string[]
 }
 

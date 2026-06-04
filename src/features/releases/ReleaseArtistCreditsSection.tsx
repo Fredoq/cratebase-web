@@ -101,8 +101,11 @@ export function ReleaseArtistCreditsSection({
                       {artistName || 'Unnamed artist'}
                     </span>
                     <span className="release-artist-chip-roles">
-                      {credit.roles.map((role) => (
-                        <span className="release-artist-role-pill" key={role}>
+                      {credit.roles.map((role, index) => (
+                        <span
+                          className="release-artist-role-pill"
+                          key={`${credit.id}-${role}-${index}`}
+                        >
                           <span>{role}</span>
                           <button
                             type="button"
@@ -163,20 +166,25 @@ function addCreditRole(
   role: string,
   setArtistCredits: Dispatch<SetStateAction<EditableArtistCredit[]>>,
 ) {
-  if (!role || credit.roles.includes(role)) {
+  if (!role) {
     return
   }
 
   setArtistCredits((credits) =>
-    credits.map((currentCredit) =>
-      currentCredit.id === credit.id
-        ? {
-            ...currentCredit,
-            role: currentCredit.role || role,
-            roles: [...currentCredit.roles, role],
-          }
-        : currentCredit,
-    ),
+    credits.map((currentCredit) => {
+      if (
+        currentCredit.id !== credit.id ||
+        currentCredit.roles.includes(role)
+      ) {
+        return currentCredit
+      }
+
+      return {
+        ...currentCredit,
+        role: currentCredit.role || role,
+        roles: [...currentCredit.roles, role],
+      }
+    }),
   )
 }
 
@@ -185,17 +193,20 @@ function removeCreditRole(
   role: string,
   setArtistCredits: Dispatch<SetStateAction<EditableArtistCredit[]>>,
 ) {
-  const nextRoles = credit.roles.filter((currentRole) => currentRole !== role)
-
   setArtistCredits((credits) =>
-    credits.map((currentCredit) =>
-      currentCredit.id === credit.id
-        ? {
-            ...currentCredit,
-            role: nextRoles[0] ?? '',
-            roles: nextRoles,
-          }
-        : currentCredit,
-    ),
+    credits.map((currentCredit) => {
+      if (currentCredit.id !== credit.id) {
+        return currentCredit
+      }
+
+      const nextRoles = currentCredit.roles.filter(
+        (currentRole) => currentRole !== role,
+      )
+      return {
+        ...currentCredit,
+        role: nextRoles[0] ?? '',
+        roles: nextRoles,
+      }
+    }),
   )
 }

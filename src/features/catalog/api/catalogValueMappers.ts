@@ -140,7 +140,7 @@ export function toTrackCreditFromReleaseCredit(
 
   return {
     artistId: credit.artistId,
-    role: roles[0] ?? creditRoleLabel(credit.role, dictionaries),
+    role: roles[0] ?? creditRoleLabel(primaryCreditRole(credit), dictionaries),
     roles,
     artist: credit.artistName,
     scope: 'Tracklist credit.',
@@ -156,20 +156,26 @@ export function toReleaseArtistCredit(
   return {
     artistId: credit.artistId,
     artist: credit.artistName,
-    role: roles[0] ?? creditRoleLabel(credit.role, dictionaries),
+    role: roles[0] ?? creditRoleLabel(primaryCreditRole(credit), dictionaries),
     roles,
   }
 }
 
 export function creditRolesFromDto(
-  credit: { role: string; roles?: string[] },
+  credit: { primaryRole?: string; role?: string; roles?: string[] },
   dictionaries = activeDictionaries,
 ) {
   const roleCodes =
-    credit.roles && credit.roles.length > 0 ? credit.roles : [credit.role]
+    credit.roles && credit.roles.length > 0
+      ? credit.roles
+      : [primaryCreditRole(credit)]
   return [
     ...new Set(roleCodes.map((role) => creditRoleLabel(role, dictionaries))),
   ]
+}
+
+function primaryCreditRole(credit: { primaryRole?: string; role?: string }) {
+  return credit.primaryRole ?? credit.role ?? ''
 }
 
 export function toReleaseLabel(label: ReleaseLabelDto): ReleaseLabel {
@@ -190,7 +196,7 @@ export function releaseArtistDisplay(release: ReleaseDto) {
   const mainCredits = credits.filter((credit) =>
     (credit.roles && credit.roles.length > 0
       ? credit.roles
-      : [credit.role]
+      : [primaryCreditRole(credit)]
     ).includes(mainArtistRoleCode),
   )
   const visibleCredits = mainCredits.length > 0 ? mainCredits : credits

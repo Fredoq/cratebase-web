@@ -109,6 +109,7 @@ export function ReleaseDetail({
         <p>{release.artist}</p>
         {onEdit ||
         onUpdateViaDiscogs ||
+        onDelete ||
         (onEditLocalFiles && localTracks.length > 0) ? (
           <div className="detail-actions">
             {onEdit ? (

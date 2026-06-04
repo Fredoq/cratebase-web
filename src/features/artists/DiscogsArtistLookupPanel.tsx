@@ -65,11 +65,22 @@ export function DiscogsArtistLookupPanel({
   }, [isOpen, searchSeed])
 
   async function handleSearch() {
+    const trimmedQuery = query.trim()
+    if (!trimmedQuery) {
+      setCandidates([])
+      setSelectedDetail(null)
+      setStatus('Enter an artist name to search.')
+      return
+    }
+
     setStatus('Searching Discogs artist candidates.')
     setSelectedDetail(null)
 
     try {
-      const result = await searchDiscogsArtists({ query, limit: 25 })
+      const result = await searchDiscogsArtists({
+        query: trimmedQuery,
+        limit: 25,
+      })
       setCandidates(result.items)
       setStatus(
         result.items.length > 0
