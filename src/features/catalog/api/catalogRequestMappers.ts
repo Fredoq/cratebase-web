@@ -51,6 +51,8 @@ export function toTrackAppearanceRequest(
   return {
     releaseId: appearance.releaseId,
     position: parseTrackPosition(appearance.position),
+    disc: textOrNull(appearance.disc),
+    side: textOrNull(appearance.side),
     versionNote:
       appearance.versionNote === 'No version relation recorded'
         ? null
@@ -60,6 +62,13 @@ export function toTrackAppearanceRequest(
 
 export function toReleaseTracklistRequest(track: TrackRecord, index: number) {
   const position = parseTrackPosition(track.trackNumber, index + 1)
+  const currentAppearance = track.release.id
+    ? track.releaseAppearances.find(
+        (appearance) => appearance.releaseId === track.release.id,
+      )
+    : undefined
+  const disc = textOrNull(track.disc ?? currentAppearance?.disc)
+  const side = textOrNull(track.side ?? currentAppearance?.side)
   const versionNote = isEmptyVersionNote(track.versionHint)
     ? null
     : track.versionHint
@@ -68,6 +77,8 @@ export function toReleaseTracklistRequest(track: TrackRecord, index: number) {
     return {
       trackId: track.id,
       position,
+      disc,
+      side,
       versionNote,
     }
   }
@@ -75,6 +86,8 @@ export function toReleaseTracklistRequest(track: TrackRecord, index: number) {
   return {
     title: track.title,
     position,
+    disc,
+    side,
     durationSeconds: parseDuration(track.duration),
     artistCredits: track.credits.map((credit) =>
       toReleaseArtistCreditRequest({
@@ -86,6 +99,12 @@ export function toReleaseTracklistRequest(track: TrackRecord, index: number) {
     ),
     versionNote,
   }
+}
+
+function textOrNull(value: string | null | undefined) {
+  const trimmed = value?.trim() ?? ''
+
+  return trimmed.length > 0 ? trimmed : null
 }
 
 export function toReleaseLabelRequest(label: ReleaseLabel) {

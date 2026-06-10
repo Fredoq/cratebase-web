@@ -134,6 +134,8 @@ describe('catalog API adapter tracklist requests', () => {
               year: '1983',
               label: 'Factory',
               position: '2',
+              disc: 'CD 1',
+              side: 'A',
               duration: '7:29',
               versionNote: 'Archive appearance',
             },
@@ -160,6 +162,8 @@ describe('catalog API adapter tracklist requests', () => {
     expect(tracklistRow).toMatchObject({
       trackId: '00000000-0000-7000-8000-000000000020',
       position: 2,
+      disc: 'CD 1',
+      side: 'A',
       versionNote: 'Archive appearance',
     })
     expect(tracklistRow).not.toHaveProperty('title')
