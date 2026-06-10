@@ -60,11 +60,15 @@ export function toTrackAppearanceRequest(
   }
 }
 
-export function toReleaseTracklistRequest(track: TrackRecord, index: number) {
+export function toReleaseTracklistRequest(
+  track: TrackRecord,
+  index: number,
+  releaseId: string,
+) {
   const position = parseTrackPosition(track.trackNumber, index + 1)
-  const currentAppearance = track.release.id
+  const currentAppearance = releaseId
     ? track.releaseAppearances.find(
-        (appearance) => appearance.releaseId === track.release.id,
+        (appearance) => appearance.releaseId === releaseId,
       )
     : undefined
   const disc = textOrNull(track.disc ?? currentAppearance?.disc)
