@@ -403,7 +403,7 @@ export function useReleaseTrackDrafts({
 
   function draftTrackMetaSummary(track: DraftTrackRow) {
     return [
-      draftTrackPositionContext(track),
+      draftTrackPositionLabel(track),
       draftTrackArtistSummary(track),
       durationPartsToText(track.durationParts),
       track.versionNote.trim(),
@@ -464,6 +464,15 @@ function draftTrackPositionContext(track: DraftTrackRow) {
   return [
     track.disc.trim(),
     track.side.trim() ? `Side ${track.side.trim()}` : '',
+  ]
+    .filter(Boolean)
+    .join(' · ')
+}
+
+function draftTrackPositionLabel(track: DraftTrackRow) {
+  return [
+    draftTrackPositionContext(track),
+    track.position.trim() ? `Track ${track.position.trim()}` : '',
   ]
     .filter(Boolean)
     .join(' · ')

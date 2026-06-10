@@ -6,9 +6,11 @@ export type SearchEntityType =
   | 'label'
   | 'playlist'
 
-export type CatalogGraphEntityType = SearchEntityType | 'relation'
+export type CatalogEntityKind = SearchEntityType | 'relation'
 
-export type CatalogLinkKind = SearchEntityType | 'relation'
+export type CatalogGraphEntityType = CatalogEntityKind
+
+export type CatalogLinkKind = CatalogEntityKind
 
 export type CatalogLinkLookupItem = {
   kind: CatalogLinkKind

@@ -220,11 +220,12 @@ function TrackImpactList({
 
   return (
     <div className="discogs-track-impact-list">
-      {previewTracks.map((track) => {
+      {previewTracks.map((track, index) => {
         const trackContext = discogsTrackContext(track)
+        const trackKey = `${track.disc ?? ''}-${track.side ?? ''}-${track.position}-${track.title}-${index}`
 
         return (
-          <div className="discogs-track-impact-row" key={track.position}>
+          <div className="discogs-track-impact-row" key={trackKey}>
             <span className="discogs-track-impact-position">
               {track.position}
             </span>
@@ -242,7 +243,7 @@ function TrackImpactList({
                       <CreditImpactRow
                         credit={credit}
                         dictionaries={dictionaries}
-                        key={`${track.position}-${credit.name}`}
+                        key={`${trackKey}-${credit.name}`}
                       />
                     ),
                   )}

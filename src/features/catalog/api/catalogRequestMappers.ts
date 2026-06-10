@@ -71,8 +71,8 @@ export function toReleaseTracklistRequest(
         (appearance) => appearance.releaseId === releaseId,
       )
     : undefined
-  const disc = textOrNull(track.disc ?? currentAppearance?.disc)
-  const side = textOrNull(track.side ?? currentAppearance?.side)
+  const disc = textOrNull(currentAppearance?.disc ?? track.disc)
+  const side = textOrNull(currentAppearance?.side ?? track.side)
   const versionNote = isEmptyVersionNote(track.versionHint)
     ? null
     : track.versionHint

@@ -146,4 +146,47 @@ describe('release form helpers', () => {
       'CD 1 Closer',
     ])
   })
+
+  it('orders repeated positions by side within the same disc', () => {
+    const sortedTracks = sortReleaseDetailTracks(
+      [
+        releaseTrack({
+          id: 'side-b-track-1',
+          title: 'Side B Opener',
+          position: '1',
+          disc: 'Disc 1',
+          side: 'B',
+        }),
+        releaseTrack({
+          id: 'side-a-track-2',
+          title: 'Side A Second',
+          position: '2',
+          disc: 'Disc 1',
+          side: 'A',
+        }),
+        releaseTrack({
+          id: 'side-a-track-1',
+          title: 'Side A Opener',
+          position: '1',
+          disc: 'Disc 1',
+          side: 'A',
+        }),
+        releaseTrack({
+          id: 'side-b-track-2',
+          title: 'Side B Second',
+          position: '2',
+          disc: 'Disc 1',
+          side: 'B',
+        }),
+      ],
+      release,
+    )
+
+    expect(sortedTracks.map((track) => track.title)).toEqual([
+      'Side A Opener',
+      'Side A Second',
+      'Side B Opener',
+      'Side B Second',
+    ])
+  })
 })

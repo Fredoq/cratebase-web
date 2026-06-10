@@ -315,6 +315,15 @@ describe('App imports and exports', () => {
       await user.clear(h.screen.getByLabelText('Side'))
       await user.type(h.screen.getByLabelText('Side'), 'B')
       await user.click(h.screen.getByRole('button', { name: /^save$/i }))
+      await h.waitFor(() => {
+        expect(
+          fetchMock.mock.calls.some(
+            ([url, init]) =>
+              url === '/api/imports/import-session-1/drafts/draft-1' &&
+              init?.method === 'PUT',
+          ),
+        ).toBe(true)
+      })
       const updateCall = fetchMock.mock.calls.find(
         ([url, init]) =>
           url === '/api/imports/import-session-1/drafts/draft-1' &&
