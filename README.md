@@ -1,5 +1,9 @@
 # DiscWeave Web
 
+> Historical repository. Active DiscWeave development moved to
+> [Fredoq/discweave](https://github.com/Fredoq/discweave), with this code under
+> `app/`.
+
 React/TypeScript web and desktop UI for DiscWeave.
 
 DiscWeave is a personal music archive for collectors, DJs and deep music nerds. The web app is focused on catalog browsing, search, relation navigation, manual entry, import, export and collection management.
